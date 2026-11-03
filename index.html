@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="默書神器">
+  <title>默書小助手</title>
+  <!-- 引入 Tesseract.js 做前端 OCR 辨識 -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    :root {
+      --primary: #007AFF;
+      --bg: #F2F2F7;
+      --card-bg: #FFFFFF;
+      --text: #1C1C1E;
+      --subtext: #8E8E93;
+      --border: #E5E5EA;
+      --accent-green: #34C759;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom) 16px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    header {
+      padding: 16px 4px 10px 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .badge {
+      font-size: 12px;
+      background: #E3F2FD;
+      color: var(--primary);
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .tabs {
+      display: flex;
+      background: #E5E5EA;
+      border-radius: 10px;
+      padding: 2px;
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      color: var(--subtext);
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: var(--card-bg);
+      color: var(--text);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .content-pane {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .content-pane.active {
+      display: flex;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+    /* 影相與編輯區 */
+    .file-input-wrapper {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-action {
+      flex: 1;
+      padding: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    textarea {
+      width: 100%;
+      height: 220px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 16px;
+      line-height: 1.5;
+      resize: none;
+      font-family: inherit;
+    }
+    /* 設定滑桿 */
+    .setting-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .setting-row:last-child {
+      border-bottom: none;
+    }
+    .setting-label {
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .slider-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 55%;
+    }
+    input[type=range] {
+      flex: 1;
+    }
+    /* 默書播放面板 */
+    .progress-bar-container {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent-green);
+      transition: width 0.3s ease;
+    }
+    .reading-display {
+      text-align: center;
+      padding: 24px 12px;
+    }
+    .reading-lang-indicator {
+      font-size: 13px;
+      color: var(--primary);
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    .reading-text {
+      font-size: 22px;
+      font-weight: 700;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.4;
+    }
+    .countdown-timer {
+      font-size: 14px;
+      color: var(--subtext);
+      margin-top: 10px;
+      font-weight: 500;
+      min-height: 20px;
+    }
+    /* 句子清單 */
+    .sentence-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 4px;
+    }
+    .sentence-item {
+      padding: 12px 14px;
+      background: var(--card-bg);
+      border-radius: 10px;
+      font-size: 16px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sentence-item.active {
+      border: 2px solid var(--primary);
+      background: #F0F7FF;
+      font-weight: 600;
+    }
+    /* 底部大控制掣 */
+    .controls-wrapper {
+      padding: 12px 0 16px 0;
+      display: grid;
+      grid-template-columns: 1fr 1.6fr 1fr;
+      gap: 10px;
+    }
+    .btn-ctrl {
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-prev { background: #E5E5EA; color: var(--text); }
+    .btn-play { background: var(--primary); color: white; }
+    .btn-next { background: var(--accent-green); color: white; }
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      z-index: 99;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>默書小助手</h1>
+    <span class="badge" id="detectedLangBadge">未載入內容</span>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('edit')">1. 課文輸入/修正</button>
+    <button class="tab-btn" onclick="switchTab('play')">2. 默書模式</button>
+  </div>
+
+  <!-- 分頁 1: 輸入與 OCR -->
+  <div id="paneEdit" class="content-pane active">
+    <div class="card">
+      <div class="file-input-wrapper">
+        <label class="btn-action">
+          📷 影相辨識
+          <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="handleOCR(this)">
+        </label>
+        <label class="btn-action" style="background: #5856D6;">
+          🖼️ 相簿選取
+          <input type="file" accept="image/*" style="display: none;" onchange="handleOCR(this)">
+        </label>
+      </div>
+    </div>
+
+    <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+      <p style="font-size: 13px; color: var(--subtext); margin-bottom: 8px;">
+        可直接貼上課文，或影相後喺度校對認錯嘅字：
+      </p>
+      <textarea id="textInput" placeholder="請在此貼上課文，或點擊上方相機辨識課文範圍..."></textarea>
+    </div>
+
+    <div class="card">
+      <div class="setting-row">
+        <span class="setting-label">標點停頓時間</span>
+        <div class="slider-control">
+          <input type="range" id="pauseInput" min="1" max="15" value="5" oninput="updateSettingsDisplay()">
+          <span id="pauseVal" style="font-weight: 600; width: 36px;">5s</span>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">朗讀速度</span>
+        <div class="slider-control">
+          <input type="range" id="rateInput" min="0.5" max="1.2" step="0.1" value="0.8" oninput="updateSettingsDisplay()">
+          <span id="rateVal" style="font-weight: 600; width: 36px;">0.8x</span>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">每句讀幾次</span>
+        <div class="slider-control">
+          <input type="range" id="repeatInput" min="1" max="3" value="2" oninput="updateSettingsDisplay()">
+          <span id="repeatVal" style="font-weight: 600; width: 36px;">2次</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分頁 2: 播放與默書 -->
+  <div id="panePlay" class="content-pane">
+    <div class="progress-bar-container">
+      <div id="progressFill" class="progress-bar-fill"></div>
+    </div>
+
+    <div class="card reading-display">
+      <div id="currentLangTag" class="reading-lang-indicator">準備就緒</div>
+      <div id="currentTextTag" class="reading-text">點擊下方播放開始默書</div>
+      <div id="timerTag" class="countdown-timer"></div>
+    </div>
+
+    <div class="sentence-list" id="sentenceListContainer"></div>
+
+    <div class="controls-wrapper">
+      <button class="btn-ctrl btn-prev" onclick="manualPrev()">⏮️ 上句</button>
+      <button class="btn-ctrl btn-play" id="playBtn" onclick="togglePlay()">▶️ 播放</button>
+      <button class="btn-ctrl btn-next" onclick="manualNext()">⏭️ 下句</button>
+    </div>
+  </div>
+
+  <div id="loadingOverlay">
+    <div style="font-size: 32px; margin-bottom: 10px;">⏳</div>
+    <div id="loadingText">正在使用 OCR 辨識課文中...</div>
+  </div>
+
+  <script>
+    let sentences = [];
+    let currentIndex = 0;
+    let currentRepeat = 0;
+    let isPlaying = false;
+    let countdownInterval = null;
+    let voices = [];
+
+    // 初始化語音庫
+    function loadVoices() {
+      if ('speechSynthesis' in window) {
+        voices = window.speechSynthesis.getVoices();
+      }
+    }
+    loadVoices();
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    function updateSettingsDisplay() {
+      document.getElementById('pauseVal').innerText = document.getElementById('pauseInput').value + 's';
+      document.getElementById('rateVal').innerText = document.getElementById('rateInput').value + 'x';
+      document.getElementById('repeatVal').innerText = document.getElementById('repeatInput').value + '次';
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.content-pane').forEach(p => p.classList.remove('active'));
+      
+      if (tab === 'edit') {
+        document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+        document.getElementById('paneEdit').classList.add('active');
+        stopPlayback();
+      } else {
+        document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+        document.getElementById('panePlay').classList.add('active');
+        prepareSentences();
+      }
+    }
+
+    // OCR 處理
+    async function handleOCR(input) {
+      if (!input.files || input.files.length === 0) return;
+      const file = input.files[0];
+      const overlay = document.getElementById('loadingOverlay');
+      overlay.style.display = 'flex';
+
+      try {
+        const worker = await Tesseract.createWorker(['chi_tra', 'chi_sim', 'eng']);
+        const ret = await worker.recognize(file);
+        document.getElementById('textInput').value = ret.data.text;
+        await worker.terminate();
+      } catch (err) {
+        alert('OCR 辨識發生錯誤，請重試或直接貼上文字。');
+      } finally {
+        overlay.style.display = 'none';
+        input.value = '';
+      }
+    }
+
+    // 句子切分與中英文判定
+    function isEnglish(text) {
+      const engLetters = (text.match(/[a-zA-Z]/g) || []).length;
+      const chiChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+      return engLetters > chiChars;
+    }
+
+    function prepareSentences() {
+      const raw = document.getElementById('textInput').value;
+      if (!raw.trim()) {
+        sentences = ["請先到第一頁輸入課文。"];
+      } else {
+        // 依據換行、句號、逗號、分號、問號、感嘆號切分句子
+        const tokens = raw.split(/[\n\r，。！？；,!?;:]+/).map(s => s.trim()).filter(s => s.length > 0);
+        sentences = tokens.length > 0 ? tokens : [raw.trim()];
+      }
+      
+      const overallLang = isEnglish(sentences.join('')) ? "英文 (英式腔調)" : "普通話 (北京腔調)";
+      document.getElementById('detectedLangBadge').innerText = overallLang;
+
+      renderList();
+      currentIndex = 0;
+      currentRepeat = 0;
+      updateDisplay();
+    }
+
+    function renderList() {
+      const container = document.getElementById('sentenceListContainer');
+      container.innerHTML = '';
+      sentences.forEach((s, idx) => {
+        const div = document.createElement('div');
+        div.className = `sentence-item ${idx === currentIndex ? 'active' : ''}`;
+        div.innerHTML = `<span>${idx + 1}. ${s}</span>`;
+        div.onclick = () => {
+          stopPlayback();
+          currentIndex = idx;
+          currentRepeat = 0;
+          updateDisplay();
+          playCurrent();
+        };
+        container.appendChild(div);
+      });
+    }
+
+    function updateDisplay() {
+      if (sentences.length === 0) return;
+      const current = sentences[currentIndex];
+      const eng = isEnglish(current);
+
+      document.getElementById('currentLangTag').innerText = eng ? "🇬🇧 英式英語朗讀" : "🇨🇳 普通話（北京腔）朗讀";
+      document.getElementById('currentTextTag').innerText = current;
+
+      const progress = ((currentIndex + 1) / sentences.length) * 100;
+      document.getElementById('progressFill').style.width = `${progress}%`;
+
+      document.querySelectorAll('.sentence-item').forEach((el, idx) => {
+        el.classList.toggle('active', idx === currentIndex);
+      });
+    }
+
+    // 取得指定口音
+    function getBestVoice(isEng) {
+      if (!voices.length) loadVoices();
+      if (isEng) {
+        // 優先英式口音 (en-GB)
+        return voices.find(v => v.lang === 'en-GB' || v.lang.startsWith('en_GB')) ||
+               voices.find(v => v.lang.startsWith('en'));
+      } else {
+        // 優先北京 / 大陸普通話 (zh-CN)
+        return voices.find(v => v.lang === 'zh-CN' || v.lang.startsWith('zh_CN')) ||
+               voices.find(v => v.lang.startsWith('zh'));
+      }
+    }
+
+    function playCurrent() {
+      if (currentIndex >= sentences.length) {
+        stopPlayback();
+        document.getElementById('currentTextTag').innerText = "🎉 默書完畢！好叻仔！";
+        return;
+      }
+
+      isPlaying = true;
+      document.getElementById('playBtn').innerText = "⏸️ 暫停";
+      updateDisplay();
+
+      const text = sentences[currentIndex];
+      const eng = isEnglish(text);
+      const utter = new SpeechSynthesisUtterance(text);
+
+      utter.voice = getBestVoice(eng);
+      utter.rate = parseFloat(document.getElementById('rateInput').value);
+
+      utter.onend = () => {
+        const maxRepeat = parseInt(document.getElementById('repeatInput').value);
+        currentRepeat++;
+
+        if (currentRepeat < maxRepeat) {
+          startCountdown(2, () => playCurrent()); // 重複前小停 2 秒
+        } else {
+          currentRepeat = 0;
+          const pauseSec = parseInt(document.getElementById('pauseInput').value);
+          startCountdown(pauseSec, () => {
+            currentIndex++;
+            playCurrent();
+          });
+        }
+      };
+
+      utter.onerror = () => {
+        stopPlayback();
+      };
+
+      window.speechSynthesis.speak(utter);
+    }
+
+    function startCountdown(seconds, callback) {
+      clearInterval(countdownInterval);
+      let left = seconds;
+      const tag = document.getElementById('timerTag');
+      tag.innerText = `⏳ 停頓中，請默寫... (${left}s)`;
+
+      countdownInterval = setInterval(() => {
+        left--;
+        if (left > 0) {
+          tag.innerText = `⏳ 停頓中，請默寫... (${left}s)`;
+        } else {
+          clearInterval(countdownInterval);
+          tag.innerText = "";
+          if (isPlaying) callback();
+        }
+      }, 1000);
+    }
+
+    function togglePlay() {
+      if (isPlaying) {
+        stopPlayback();
+      } else {
+        playCurrent();
+      }
+    }
+
+    function stopPlayback() {
+      isPlaying = false;
+      window.speechSynthesis.cancel();
+      clearInterval(countdownInterval);
+      document.getElementById('timerTag').innerText = "";
+      document.getElementById('playBtn').innerText = "▶️ 播放";
+    }
+
+    function manualNext() {
+      stopPlayback();
+      if (currentIndex < sentences.length - 1) {
+        currentIndex++;
+        currentRepeat = 0;
+        updateDisplay();
+      }
+    }
+
+    function manualPrev() {
+      stopPlayback();
+      if (currentIndex > 0) {
+        currentIndex--;
+        currentRepeat = 0;
+        updateDisplay();
+      }
+    }
+  </script>
+</body>
+</html>

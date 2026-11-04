@@ -6,9 +6,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="默書神器">
-  <title>默書小助手</title>
-  <!-- 引入 Tesseract.js 做前端 OCR 辨識 -->
+  <title>默書小助手 Pro</title>
+  <!-- 引入 Tesseract.js (OCR) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- 引入 TinyPinyin (漢語拼音轉換) -->
+  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.19.6/dist/index.production.js"></script>
   <style>
     :root {
       --primary: #007AFF;
@@ -18,13 +20,9 @@
       --subtext: #8E8E93;
       --border: #E5E5EA;
       --accent-green: #34C759;
+      --pinyin-color: #E65100;
     }
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
@@ -37,15 +35,12 @@
       margin: 0 auto;
     }
     header {
-      padding: 16px 4px 10px 4px;
+      padding: 14px 4px 8px 4px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    header h1 {
-      font-size: 22px;
-      font-weight: 700;
-    }
+    header h1 { font-size: 20px; font-weight: 700; }
     .badge {
       font-size: 12px;
       background: #E3F2FD;
@@ -59,7 +54,7 @@
       background: #E5E5EA;
       border-radius: 10px;
       padding: 2px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .tab-btn {
       flex: 1;
@@ -82,30 +77,24 @@
       flex: 1;
       overflow-y: auto;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
-    .content-pane.active {
-      display: flex;
-    }
+    .content-pane.active { display: flex; }
     .card {
       background: var(--card-bg);
       border-radius: 14px;
-      padding: 16px;
+      padding: 14px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
-    /* 影相與編輯區 */
-    .file-input-wrapper {
-      display: flex;
-      gap: 10px;
-    }
+    .file-input-wrapper { display: flex; gap: 8px; }
     .btn-action {
       flex: 1;
-      padding: 12px;
+      padding: 10px;
       background: var(--primary);
       color: white;
       border: none;
       border-radius: 10px;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
       display: flex;
       align-items: center;
@@ -115,46 +104,58 @@
     }
     textarea {
       width: 100%;
-      height: 220px;
+      height: 180px;
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 12px;
+      padding: 10px;
       font-size: 16px;
       line-height: 1.5;
       resize: none;
       font-family: inherit;
     }
-    /* 設定滑桿 */
+    .lang-selector {
+      display: flex;
+      background: #E5E5EA;
+      border-radius: 8px;
+      padding: 2px;
+      margin-top: 6px;
+    }
+    .lang-opt {
+      flex: 1;
+      text-align: center;
+      font-size: 13px;
+      padding: 6px 0;
+      border-radius: 6px;
+      cursor: pointer;
+      color: var(--subtext);
+      font-weight: 600;
+    }
+    .lang-opt.active {
+      background: white;
+      color: var(--text);
+    }
     .setting-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 0;
+      padding: 8px 0;
       border-bottom: 1px solid var(--border);
     }
-    .setting-row:last-child {
-      border-bottom: none;
-    }
-    .setting-label {
-      font-size: 15px;
-      font-weight: 500;
-    }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { font-size: 14px; font-weight: 500; }
     .slider-control {
       display: flex;
       align-items: center;
       gap: 8px;
       width: 55%;
     }
-    input[type=range] {
-      flex: 1;
-    }
-    /* 默書播放面板 */
+    input[type=range] { flex: 1; }
+    /* 播放與拼音渲染 */
     .progress-bar-container {
       height: 6px;
       background: var(--border);
       border-radius: 3px;
       overflow: hidden;
-      margin-bottom: 8px;
     }
     .progress-bar-fill {
       height: 100%;
@@ -164,7 +165,7 @@
     }
     .reading-display {
       text-align: center;
-      padding: 24px 12px;
+      padding: 20px 10px;
     }
     .reading-lang-indicator {
       font-size: 13px;
@@ -175,20 +176,31 @@
     .reading-text {
       font-size: 22px;
       font-weight: 700;
-      min-height: 60px;
+      min-height: 70px;
       display: flex;
       align-items: center;
       justify-content: center;
-      line-height: 1.4;
+      line-height: 2.2;
+      word-break: break-word;
+    }
+    /* Ruby 拼音樣式 */
+    ruby {
+      ruby-align: center;
+      margin: 0 1px;
+    }
+    rt {
+      font-size: 11px;
+      color: var(--pinyin-color);
+      font-weight: 600;
+      transform: translateY(-2px);
     }
     .countdown-timer {
       font-size: 14px;
       color: var(--subtext);
-      margin-top: 10px;
+      margin-top: 6px;
       font-weight: 500;
-      min-height: 20px;
+      min-height: 18px;
     }
-    /* 句子清單 */
     .sentence-list {
       flex: 1;
       overflow-y: auto;
@@ -198,24 +210,21 @@
       padding: 4px;
     }
     .sentence-item {
-      padding: 12px 14px;
+      padding: 10px 12px;
       background: var(--card-bg);
       border-radius: 10px;
       font-size: 16px;
+      line-height: 1.8;
       border: 1px solid var(--border);
       cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
     }
     .sentence-item.active {
       border: 2px solid var(--primary);
       background: #F0F7FF;
       font-weight: 600;
     }
-    /* 底部大控制掣 */
     .controls-wrapper {
-      padding: 12px 0 16px 0;
+      padding: 10px 0 12px 0;
       display: grid;
       grid-template-columns: 1fr 1.6fr 1fr;
       gap: 10px;
@@ -227,32 +236,22 @@
       font-size: 16px;
       font-weight: 700;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
     .btn-prev { background: #E5E5EA; color: var(--text); }
     .btn-play { background: var(--primary); color: white; }
     .btn-next { background: var(--accent-green); color: white; }
     #loadingOverlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      color: white;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      z-index: 99;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      color: white; display: none; flex-direction: column;
+      align-items: center; justify-content: center; font-size: 16px; z-index: 99;
     }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>默書小助手</h1>
-    <span class="badge" id="detectedLangBadge">未載入內容</span>
+    <h1>默書小助手 Pro</h1>
+    <span class="badge" id="detectedLangBadge">準備就緒</span>
   </header>
 
   <div class="tabs">
@@ -260,7 +259,7 @@
     <button class="tab-btn" onclick="switchTab('play')">2. 默書模式</button>
   </div>
 
-  <!-- 分頁 1: 輸入與 OCR -->
+  <!-- 分頁 1: 輸入與設定 -->
   <div id="paneEdit" class="content-pane active">
     <div class="card">
       <div class="file-input-wrapper">
@@ -275,11 +274,20 @@
       </div>
     </div>
 
-    <div class="card" style="flex: 1; display: flex; flex-direction: column;">
-      <p style="font-size: 13px; color: var(--subtext); margin-bottom: 8px;">
-        可直接貼上課文，或影相後喺度校對認錯嘅字：
+    <div class="card" style="display: flex; flex-direction: column;">
+      <p style="font-size: 13px; color: var(--subtext); margin-bottom: 6px;">
+        課文內容（可貼上、修改錯字，系統會自動轉換拼音）：
       </p>
-      <textarea id="textInput" placeholder="請在此貼上課文，或點擊上方相機辨識課文範圍..."></textarea>
+      <textarea id="textInput" placeholder="請在此輸入或貼上課文範圍..."></textarea>
+      
+      <div style="margin-top: 10px;">
+        <span class="setting-label">朗讀語言模式</span>
+        <div class="lang-selector">
+          <div class="lang-opt active" id="lang-auto" onclick="setLangMode('auto')">🤖 自動識別</div>
+          <div class="lang-opt" id="lang-zh" onclick="setLangMode('zh')">🇨🇳 北京普通話</div>
+          <div class="lang-opt" id="lang-en" onclick="setLangMode('en')">🇬🇧 英式英文</div>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -307,7 +315,7 @@
     </div>
   </div>
 
-  <!-- 分頁 2: 播放與默書 -->
+  <!-- 分頁 2: 默書播放 -->
   <div id="panePlay" class="content-pane">
     <div class="progress-bar-container">
       <div id="progressFill" class="progress-bar-fill"></div>
@@ -330,7 +338,7 @@
 
   <div id="loadingOverlay">
     <div style="font-size: 32px; margin-bottom: 10px;">⏳</div>
-    <div id="loadingText">正在使用 OCR 辨識課文中...</div>
+    <div id="loadingText">正在辨識文字中...</div>
   </div>
 
   <script>
@@ -339,9 +347,9 @@
     let currentRepeat = 0;
     let isPlaying = false;
     let countdownInterval = null;
+    let selectedLangMode = 'auto'; // 'auto', 'zh', 'en'
     let voices = [];
 
-    // 初始化語音庫
     function loadVoices() {
       if ('speechSynthesis' in window) {
         voices = window.speechSynthesis.getVoices();
@@ -350,6 +358,12 @@
     loadVoices();
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    function setLangMode(mode) {
+      selectedLangMode = mode;
+      document.querySelectorAll('.lang-opt').forEach(el => el.classList.remove('active'));
+      document.getElementById('lang-' + mode).classList.add('active');
     }
 
     function updateSettingsDisplay() {
@@ -373,7 +387,25 @@
       }
     }
 
-    // OCR 處理
+    // 文字轉帶拼音 HTML (Ruby 標註)
+    function renderPinyinHtml(text) {
+      if (!window.pinyinPro) return text;
+      try {
+        const pinyinData = window.pinyinPro.pinyin(text, { type: 'all' });
+        let html = '';
+        pinyinData.forEach(item => {
+          if (/[\u4e00-\u9fa5]/.test(item.origin)) {
+            html += `<ruby>${item.origin}<rt>${item.pinyin}</rt></ruby>`;
+          } else {
+            html += item.origin;
+          }
+        });
+        return html;
+      } catch (e) {
+        return text;
+      }
+    }
+
     async function handleOCR(input) {
       if (!input.files || input.files.length === 0) return;
       const file = input.files[0];
@@ -386,15 +418,16 @@
         document.getElementById('textInput').value = ret.data.text;
         await worker.terminate();
       } catch (err) {
-        alert('OCR 辨識發生錯誤，請重試或直接貼上文字。');
+        alert('OCR 辨識失敗，請重試或直接貼上文字。');
       } finally {
         overlay.style.display = 'none';
         input.value = '';
       }
     }
 
-    // 句子切分與中英文判定
-    function isEnglish(text) {
+    function isSentenceEnglish(text) {
+      if (selectedLangMode === 'en') return true;
+      if (selectedLangMode === 'zh') return false;
       const engLetters = (text.match(/[a-zA-Z]/g) || []).length;
       const chiChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
       return engLetters > chiChars;
@@ -405,13 +438,12 @@
       if (!raw.trim()) {
         sentences = ["請先到第一頁輸入課文。"];
       } else {
-        // 依據換行、句號、逗號、分號、問號、感嘆號切分句子
         const tokens = raw.split(/[\n\r，。！？；,!?;:]+/).map(s => s.trim()).filter(s => s.length > 0);
         sentences = tokens.length > 0 ? tokens : [raw.trim()];
       }
       
-      const overallLang = isEnglish(sentences.join('')) ? "英文 (英式腔調)" : "普通話 (北京腔調)";
-      document.getElementById('detectedLangBadge').innerText = overallLang;
+      const overallEng = isSentenceEnglish(sentences.join(''));
+      document.getElementById('detectedLangBadge').innerText = overallEng ? "🇬🇧 英式英語" : "🇨🇳 北京普通話";
 
       renderList();
       currentIndex = 0;
@@ -425,7 +457,9 @@
       sentences.forEach((s, idx) => {
         const div = document.createElement('div');
         div.className = `sentence-item ${idx === currentIndex ? 'active' : ''}`;
-        div.innerHTML = `<span>${idx + 1}. ${s}</span>`;
+        const eng = isSentenceEnglish(s);
+        const displayContent = eng ? s : renderPinyinHtml(s);
+        div.innerHTML = `<div>${idx + 1}. ${displayContent}</div>`;
         div.onclick = () => {
           stopPlayback();
           currentIndex = idx;
@@ -440,10 +474,10 @@
     function updateDisplay() {
       if (sentences.length === 0) return;
       const current = sentences[currentIndex];
-      const eng = isEnglish(current);
+      const eng = isSentenceEnglish(current);
 
-      document.getElementById('currentLangTag').innerText = eng ? "🇬🇧 英式英語朗讀" : "🇨🇳 普通話（北京腔）朗讀";
-      document.getElementById('currentTextTag').innerText = current;
+      document.getElementById('currentLangTag').innerText = eng ? "🇬🇧 英式英語朗讀" : "🇨🇳 普通話（附拼音對照）";
+      document.getElementById('currentTextTag').innerHTML = eng ? current : renderPinyinHtml(current);
 
       const progress = ((currentIndex + 1) / sentences.length) * 100;
       document.getElementById('progressFill').style.width = `${progress}%`;
@@ -453,15 +487,12 @@
       });
     }
 
-    // 取得指定口音
     function getBestVoice(isEng) {
       if (!voices.length) loadVoices();
       if (isEng) {
-        // 優先英式口音 (en-GB)
         return voices.find(v => v.lang === 'en-GB' || v.lang.startsWith('en_GB')) ||
                voices.find(v => v.lang.startsWith('en'));
       } else {
-        // 優先北京 / 大陸普通話 (zh-CN)
         return voices.find(v => v.lang === 'zh-CN' || v.lang.startsWith('zh_CN')) ||
                voices.find(v => v.lang.startsWith('zh'));
       }
@@ -479,7 +510,7 @@
       updateDisplay();
 
       const text = sentences[currentIndex];
-      const eng = isEnglish(text);
+      const eng = isSentenceEnglish(text);
       const utter = new SpeechSynthesisUtterance(text);
 
       utter.voice = getBestVoice(eng);
@@ -490,7 +521,7 @@
         currentRepeat++;
 
         if (currentRepeat < maxRepeat) {
-          startCountdown(2, () => playCurrent()); // 重複前小停 2 秒
+          startCountdown(2, () => playCurrent());
         } else {
           currentRepeat = 0;
           const pauseSec = parseInt(document.getElementById('pauseInput').value);
@@ -501,10 +532,7 @@
         }
       };
 
-      utter.onerror = () => {
-        stopPlayback();
-      };
-
+      utter.onerror = () => stopPlayback();
       window.speechSynthesis.speak(utter);
     }
 
@@ -527,11 +555,7 @@
     }
 
     function togglePlay() {
-      if (isPlaying) {
-        stopPlayback();
-      } else {
-        playCurrent();
-      }
+      if (isPlaying) { stopPlayback(); } else { playCurrent(); }
     }
 
     function stopPlayback() {

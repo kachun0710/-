@@ -9,8 +9,8 @@
   <title>默書小助手 Pro</title>
   <!-- 引入 Tesseract.js (OCR) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <!-- 引入 TinyPinyin (漢語拼音轉換) -->
-  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.19.6/dist/index.production.js"></script>
+  <!-- 引入可靠且完整的拼音庫 -->
+  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.18.3/dist/index.js"></script>
   <style>
     :root {
       --primary: #007AFF;
@@ -20,7 +20,9 @@
       --subtext: #8E8E93;
       --border: #E5E5EA;
       --accent-green: #34C759;
-      --pinyin-color: #E65100;
+      --pinyin-color: #D32F2F;
+      --highlight-bg: #FFF9C4;
+      --highlight-border: #FBC02D;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
     body {
@@ -35,7 +37,7 @@
       margin: 0 auto;
     }
     header {
-      padding: 14px 4px 8px 4px;
+      padding: 12px 4px 6px 4px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -54,7 +56,7 @@
       background: #E5E5EA;
       border-radius: 10px;
       padding: 2px;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .tab-btn {
       flex: 1;
@@ -83,7 +85,7 @@
     .card {
       background: var(--card-bg);
       border-radius: 14px;
-      padding: 14px;
+      padding: 12px 14px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
     .file-input-wrapper { display: flex; gap: 8px; }
@@ -150,9 +152,10 @@
       width: 55%;
     }
     input[type=range] { flex: 1; }
-    /* 播放與拼音渲染 */
+
+    /* 播放畫面全新雙層排版 */
     .progress-bar-container {
-      height: 6px;
+      height: 5px;
       background: var(--border);
       border-radius: 3px;
       overflow: hidden;
@@ -163,26 +166,29 @@
       background: var(--accent-green);
       transition: width 0.3s ease;
     }
-    .reading-display {
-      text-align: center;
-      padding: 20px 10px;
+
+    /* 上半部：完整文章預覽與高亮框 */
+    .article-preview-card {
+      max-height: 190px;
+      overflow-y: auto;
+      border: 1px solid #D1D1D6;
+      background: #FFFFFF;
+      padding: 12px 14px;
+      line-height: 2.1;
+      font-size: 16px;
     }
-    .reading-lang-indicator {
-      font-size: 13px;
-      color: var(--primary);
-      margin-bottom: 8px;
-      font-weight: 600;
+    .article-chunk {
+      display: inline;
+      padding: 2px 4px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
     }
-    .reading-text {
-      font-size: 22px;
+    .article-chunk.highlight {
+      background-color: var(--highlight-bg);
+      border-bottom: 2px solid var(--highlight-border);
       font-weight: 700;
-      min-height: 70px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      line-height: 2.2;
-      word-break: break-word;
     }
+
     /* Ruby 拼音樣式 */
     ruby {
       ruby-align: center;
@@ -192,28 +198,31 @@
       font-size: 11px;
       color: var(--pinyin-color);
       font-weight: 600;
-      transform: translateY(-2px);
+      line-height: 1;
     }
+
     .countdown-timer {
-      font-size: 14px;
-      color: var(--subtext);
-      margin-top: 6px;
-      font-weight: 500;
+      font-size: 13px;
+      color: #FF3B30;
+      font-weight: 600;
+      text-align: center;
       min-height: 18px;
     }
+
+    /* 下半部：滾動單句列表 */
     .sentence-list {
       flex: 1;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      padding: 4px;
+      padding: 2px;
     }
     .sentence-item {
       padding: 10px 12px;
       background: var(--card-bg);
       border-radius: 10px;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.8;
       border: 1px solid var(--border);
       cursor: pointer;
@@ -223,8 +232,9 @@
       background: #F0F7FF;
       font-weight: 600;
     }
+
     .controls-wrapper {
-      padding: 10px 0 12px 0;
+      padding: 8px 0 10px 0;
       display: grid;
       grid-template-columns: 1fr 1.6fr 1fr;
       gap: 10px;
@@ -276,9 +286,9 @@
 
     <div class="card" style="display: flex; flex-direction: column;">
       <p style="font-size: 13px; color: var(--subtext); margin-bottom: 6px;">
-        課文內容（可貼上、修改錯字，系統會自動轉換拼音）：
+        課文內容（修改後切換到「默書模式」即可實時轉換）：
       </p>
-      <textarea id="textInput" placeholder="請在此輸入或貼上課文範圍..."></textarea>
+      <textarea id="textInput" placeholder="請在此輸入或貼上課文範圍...">Apple 今晨正式向開發者推送 iOS 27.3 Beta 1，距離上一版本僅隔一星期的時間。當中以專屬單手操作模式最吸引果粉眼球。</textarea>
       
       <div style="margin-top: 10px;">
         <span class="setting-label">朗讀語言模式</span>
@@ -315,18 +325,21 @@
     </div>
   </div>
 
-  <!-- 分頁 2: 默書播放 -->
+  <!-- 分頁 2: 默書播放（全新上下雙結構） -->
   <div id="panePlay" class="content-pane">
     <div class="progress-bar-container">
       <div id="progressFill" class="progress-bar-fill"></div>
     </div>
 
-    <div class="card reading-display">
-      <div id="currentLangTag" class="reading-lang-indicator">準備就緒</div>
-      <div id="currentTextTag" class="reading-text">點擊下方播放開始默書</div>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px;">
+      <span id="currentLangTag" style="font-size: 13px; font-weight: 600; color: var(--primary);">準備就緒</span>
       <div id="timerTag" class="countdown-timer"></div>
     </div>
 
+    <!-- 上半部：整篇課文全覽與即時 Highlighting -->
+    <div class="card article-preview-card" id="fullArticleContainer"></div>
+
+    <!-- 下半部：可點擊的單句清單 -->
     <div class="sentence-list" id="sentenceListContainer"></div>
 
     <div class="controls-wrapper">
@@ -347,7 +360,7 @@
     let currentRepeat = 0;
     let isPlaying = false;
     let countdownInterval = null;
-    let selectedLangMode = 'auto'; // 'auto', 'zh', 'en'
+    let selectedLangMode = 'auto';
     let voices = [];
 
     function loadVoices() {
@@ -387,21 +400,24 @@
       }
     }
 
-    // 文字轉帶拼音 HTML (Ruby 標註)
-    function renderPinyinHtml(text) {
-      if (!window.pinyinPro) return text;
+    // 拼音轉換函式（保證帶聲調）
+    function toPinyinRuby(text) {
+      const pinyinLib = window.pinyinPro;
+      if (!pinyinLib || typeof pinyinLib.pinyin !== 'function') {
+        return text;
+      }
       try {
-        const pinyinData = window.pinyinPro.pinyin(text, { type: 'all' });
-        let html = '';
-        pinyinData.forEach(item => {
+        const list = pinyinLib.pinyin(text, { type: 'all' });
+        let res = '';
+        list.forEach(item => {
           if (/[\u4e00-\u9fa5]/.test(item.origin)) {
-            html += `<ruby>${item.origin}<rt>${item.pinyin}</rt></ruby>`;
+            res += `<ruby>${item.origin}<rt>${item.pinyin}</rt></ruby>`;
           } else {
-            html += item.origin;
+            res += item.origin;
           }
         });
-        return html;
-      } catch (e) {
+        return res;
+      } catch (err) {
         return text;
       }
     }
@@ -443,14 +459,30 @@
       }
       
       const overallEng = isSentenceEnglish(sentences.join(''));
-      document.getElementById('detectedLangBadge').innerText = overallEng ? "🇬🇧 英式英語" : "🇨🇳 北京普通話";
+      document.getElementById('detectedLangBadge').innerText = overallEng ? "🇬🇧 英式英語" : "🇨🇳 普通話（含拼音）";
 
+      renderFullArticle();
       renderList();
       currentIndex = 0;
       currentRepeat = 0;
       updateDisplay();
     }
 
+    // 渲染上半部：整篇完整課文
+    function renderFullArticle() {
+      const box = document.getElementById('fullArticleContainer');
+      box.innerHTML = '';
+      sentences.forEach((s, idx) => {
+        const span = document.createElement('span');
+        span.id = `chunk-${idx}`;
+        span.className = `article-chunk ${idx === currentIndex ? 'highlight' : ''}`;
+        const eng = isSentenceEnglish(s);
+        span.innerHTML = (eng ? s : toPinyinRuby(s)) + ' ';
+        box.appendChild(span);
+      });
+    }
+
+    // 渲染下半部：單句清單
     function renderList() {
       const container = document.getElementById('sentenceListContainer');
       container.innerHTML = '';
@@ -458,7 +490,7 @@
         const div = document.createElement('div');
         div.className = `sentence-item ${idx === currentIndex ? 'active' : ''}`;
         const eng = isSentenceEnglish(s);
-        const displayContent = eng ? s : renderPinyinHtml(s);
+        const displayContent = eng ? s : toPinyinRuby(s);
         div.innerHTML = `<div>${idx + 1}. ${displayContent}</div>`;
         div.onclick = () => {
           stopPlayback();
@@ -476,12 +508,22 @@
       const current = sentences[currentIndex];
       const eng = isSentenceEnglish(current);
 
-      document.getElementById('currentLangTag').innerText = eng ? "🇬🇧 英式英語朗讀" : "🇨🇳 普通話（附拼音對照）";
-      document.getElementById('currentTextTag').innerHTML = eng ? current : renderPinyinHtml(current);
+      document.getElementById('currentLangTag').innerText = eng ? "🇬🇧 英式英語朗讀" : "🇨🇳 普通話（北京腔調）";
 
+      // 更新進度條
       const progress = ((currentIndex + 1) / sentences.length) * 100;
       document.getElementById('progressFill').style.width = `${progress}%`;
 
+      // 上半部 Highlight 並自動捲動
+      document.querySelectorAll('.article-chunk').forEach((el, idx) => {
+        const isActive = (idx === currentIndex);
+        el.classList.toggle('highlight', isActive);
+        if (isActive) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+
+      // 下半部清單同步 Active
       document.querySelectorAll('.sentence-item').forEach((el, idx) => {
         el.classList.toggle('active', idx === currentIndex);
       });
@@ -501,7 +543,7 @@
     function playCurrent() {
       if (currentIndex >= sentences.length) {
         stopPlayback();
-        document.getElementById('currentTextTag').innerText = "🎉 默書完畢！好叻仔！";
+        document.getElementById('timerTag').innerText = "🎉 默書完畢！好叻仔！";
         return;
       }
 

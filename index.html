@@ -4,25 +4,41 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="默書神器">
-  <title>默書小助手 Pro</title>
-  <!-- 引入 Tesseract.js (OCR) -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-  <!-- 引入可靠且完整的拼音庫 -->
+  <title>默書小助手 Ultra</title>
+  <!-- 拼音轉換庫 -->
   <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.18.3/dist/index.js"></script>
   <style>
     :root {
       --primary: #007AFF;
-      --bg: #F2F2F7;
+      --bg: #F4F6F9;
       --card-bg: #FFFFFF;
       --text: #1C1C1E;
       --subtext: #8E8E93;
       --border: #E5E5EA;
       --accent-green: #34C759;
-      --pinyin-color: #D32F2F;
-      --highlight-bg: #FFF9C4;
-      --highlight-border: #FBC02D;
+      --active-card-bg: #007AFF;
+      --active-card-text: #FFFFFF;
+      --pinyin-color: #E65100;
+      --pinyin-active: #FFD54F;
+      --circle-bg: #E5E5EA;
+      --circle-text: #8E8E93;
+    }
+    body.dark-mode {
+      --primary: #0A84FF;
+      --bg: #000000;
+      --card-bg: #1C1C1E;
+      --text: #FFFFFF;
+      --subtext: #98989D;
+      --border: #38383A;
+      --accent-green: #30D158;
+      --active-card-bg: #0A84FF;
+      --active-card-text: #FFFFFF;
+      --pinyin-color: #FF8A65;
+      --pinyin-active: #FFF59D;
+      --circle-bg: #2C2C2E;
+      --circle-text: #AEAEB2;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
     body {
@@ -35,223 +51,236 @@
       height: 100vh;
       max-width: 500px;
       margin: 0 auto;
+      transition: background 0.3s ease;
     }
-    header {
-      padding: 12px 4px 6px 4px;
+    /* 頂部導航列 */
+    .nav-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      padding: 10px 4px;
+      height: 48px;
     }
-    header h1 { font-size: 20px; font-weight: 700; }
-    .badge {
-      font-size: 12px;
-      background: #E3F2FD;
-      color: var(--primary);
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-weight: 600;
+    .nav-title {
+      font-size: 18px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
     }
-    .tabs {
-      display: flex;
-      background: #E5E5EA;
-      border-radius: 10px;
-      padding: 2px;
-      margin-bottom: 8px;
-    }
-    .tab-btn {
-      flex: 1;
-      padding: 8px;
-      border: none;
+    .icon-btn {
       background: transparent;
-      font-size: 14px;
-      font-weight: 600;
-      border-radius: 8px;
-      color: var(--subtext);
+      border: none;
+      font-size: 20px;
       cursor: pointer;
-    }
-    .tab-btn.active {
-      background: var(--card-bg);
       color: var(--text);
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      padding: 6px;
+      border-radius: 50%;
     }
-    .content-pane {
+    /* 視圖切換容器 */
+    .view-pane {
       display: none;
       flex: 1;
       overflow-y: auto;
       flex-direction: column;
-      gap: 10px;
+      gap: 12px;
     }
-    .content-pane.active { display: flex; }
-    .card {
-      background: var(--card-bg);
-      border-radius: 14px;
-      padding: 12px 14px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    .view-pane.active { display: flex; }
+
+    /* ====== 播放視圖 (Play View) ====== */
+    .player-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0 6px 0;
     }
-    .file-input-wrapper { display: flex; gap: 8px; }
-    .btn-action {
-      flex: 1;
-      padding: 10px;
-      background: var(--primary);
-      color: white;
+    .ctrl-circle-group {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .btn-circle {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
       border: none;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
+      background: #E1E9F5;
+      color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      font-size: 22px;
       cursor: pointer;
     }
-    textarea {
-      width: 100%;
-      height: 180px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px;
-      font-size: 16px;
-      line-height: 1.5;
-      resize: none;
-      font-family: inherit;
+    body.dark-mode .btn-circle { background: #1C2738; }
+    .btn-circle.play-main {
+      width: 72px;
+      height: 72px;
+      background: var(--primary);
+      color: #FFFFFF;
+      font-size: 28px;
+      box-shadow: 0 4px 14px rgba(0,122,255,0.3);
     }
-    .lang-selector {
+    /* 參數膠囊列 */
+    .capsule-bar {
       display: flex;
-      background: #E5E5EA;
-      border-radius: 8px;
-      padding: 2px;
-      margin-top: 6px;
-    }
-    .lang-opt {
-      flex: 1;
-      text-align: center;
-      font-size: 13px;
-      padding: 6px 0;
-      border-radius: 6px;
-      cursor: pointer;
-      color: var(--subtext);
-      font-weight: 600;
-    }
-    .lang-opt.active {
-      background: white;
-      color: var(--text);
-    }
-    .setting-row {
-      display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--border);
-    }
-    .setting-row:last-child { border-bottom: none; }
-    .setting-label { font-size: 14px; font-weight: 500; }
-    .slider-control {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      width: 55%;
-    }
-    input[type=range] { flex: 1; }
-
-    /* 播放畫面全新雙層排版 */
-    .progress-bar-container {
-      height: 5px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: var(--accent-green);
-      transition: width 0.3s ease;
-    }
-
-    /* 上半部：完整文章預覽與高亮框 */
-    .article-preview-card {
-      max-height: 190px;
-      overflow-y: auto;
-      border: 1px solid #D1D1D6;
-      background: #FFFFFF;
-      padding: 12px 14px;
-      line-height: 2.1;
-      font-size: 16px;
-    }
-    .article-chunk {
-      display: inline;
-      padding: 2px 4px;
-      border-radius: 4px;
-      transition: all 0.2s ease;
-    }
-    .article-chunk.highlight {
-      background-color: var(--highlight-bg);
-      border-bottom: 2px solid var(--highlight-border);
-      font-weight: 700;
-    }
-
-    /* Ruby 拼音樣式 */
-    ruby {
-      ruby-align: center;
-      margin: 0 1px;
-    }
-    rt {
-      font-size: 11px;
-      color: var(--pinyin-color);
-      font-weight: 600;
-      line-height: 1;
-    }
-
-    .countdown-timer {
+      width: 100%;
+      background: var(--card-bg);
+      padding: 8px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
       font-size: 13px;
-      color: #FF3B30;
-      font-weight: 600;
-      text-align: center;
-      min-height: 18px;
+      color: var(--subtext);
+      cursor: pointer;
     }
+    .capsule-bar span { font-weight: 600; color: var(--primary); }
 
-    /* 下半部：滾動單句列表 */
+    /* 單句卡片滾動區 */
     .sentence-list {
       flex: 1;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      padding: 2px;
+      gap: 12px;
+      padding: 4px 2px 20px 2px;
     }
-    .sentence-item {
-      padding: 10px 12px;
+    .sentence-card {
       background: var(--card-bg);
-      border-radius: 10px;
-      font-size: 15px;
-      line-height: 1.8;
+      border-radius: 16px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
       border: 1px solid var(--border);
       cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
-    .sentence-item.active {
-      border: 2px solid var(--primary);
-      background: #F0F7FF;
+    .card-idx-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--circle-bg);
+      color: var(--circle-text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .card-text-body {
+      font-size: 18px;
+      line-height: 2.1;
       font-weight: 600;
+      word-break: break-word;
+      flex: 1;
+    }
+    /* Active 高亮選中狀態 */
+    .sentence-card.active {
+      background: var(--active-card-bg);
+      border-color: var(--active-card-bg);
+      color: var(--active-card-text);
+      box-shadow: 0 4px 12px rgba(0,122,255,0.25);
+    }
+    .sentence-card.active .card-idx-badge {
+      background: rgba(255,255,255,0.25);
+      color: #FFFFFF;
+    }
+    .sentence-card.active rt { color: var(--pinyin-active); }
+
+    /* Ruby 拼音排版 */
+    ruby { ruby-align: center; margin: 0 1px; }
+    rt {
+      font-size: 12px;
+      color: var(--pinyin-color);
+      font-weight: 600;
+      line-height: 1;
     }
 
-    .controls-wrapper {
-      padding: 8px 0 10px 0;
-      display: grid;
-      grid-template-columns: 1fr 1.6fr 1fr;
-      gap: 10px;
-    }
-    .btn-ctrl {
+    /* ====== 編輯視圖 (Edit View) ====== */
+    .card {
+      background: var(--card-bg);
+      border-radius: 14px;
       padding: 14px;
-      border: none;
-      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    .field-label { font-size: 13px; color: var(--subtext); margin-bottom: 6px; font-weight: 600; }
+    input[type=text], textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
       font-size: 16px;
+      background: transparent;
+      color: var(--text);
+      font-family: inherit;
+    }
+    textarea { height: 180px; line-height: 1.5; resize: none; }
+    .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+    .btn-flat {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
       font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-flat.primary { background: var(--primary); color: #FFF; }
+    .btn-flat.secondary { background: var(--border); color: var(--text); }
+
+    /* 設定開關列 */
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .setting-item:last-child { border-bottom: none; }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 28px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background-color: #E5E5EA; transition: .3s; border-radius: 28px;
+    }
+    .slider:before {
+      position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px;
+      background-color: white; transition: .3s; border-radius: 50%;
+    }
+    input:checked + .slider { background-color: var(--accent-green); }
+    input:checked + .slider:before { transform: translateX(20px); }
+
+    /* 課文庫抽屜/清單 */
+    .history-item {
+      padding: 12px;
+      border-radius: 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
       cursor: pointer;
     }
-    .btn-prev { background: #E5E5EA; color: var(--text); }
-    .btn-play { background: var(--primary); color: white; }
-    .btn-next { background: var(--accent-green); color: white; }
+
     #loadingOverlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
       color: white; display: none; flex-direction: column;
       align-items: center; justify-content: center; font-size: 16px; z-index: 99;
     }
@@ -259,99 +288,128 @@
 </head>
 <body>
 
-  <header>
-    <h1>默書小助手 Pro</h1>
-    <span class="badge" id="detectedLangBadge">準備就緒</span>
-  </header>
-
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('edit')">1. 課文輸入/修正</button>
-    <button class="tab-btn" onclick="switchTab('play')">2. 默書模式</button>
+  <!-- 頂部導航 -->
+  <div class="nav-bar">
+    <button class="icon-btn" onclick="toggleView()" id="navLeftBtn">⚙️ 編輯</button>
+    <div class="nav-title" id="articleTitleDisplay">望梅止渴</div>
+    <div style="display: flex; gap: 4px;">
+      <button class="icon-btn" onclick="toggleDarkMode()">🌓</button>
+      <button class="icon-btn" onclick="openSavedList()">📚 題庫</button>
+    </div>
   </div>
 
-  <!-- 分頁 1: 輸入與設定 -->
-  <div id="paneEdit" class="content-pane active">
-    <div class="card">
-      <div class="file-input-wrapper">
-        <label class="btn-action">
-          📷 影相辨識
-          <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="handleOCR(this)">
-        </label>
-        <label class="btn-action" style="background: #5856D6;">
-          🖼️ 相簿選取
-          <input type="file" accept="image/*" style="display: none;" onchange="handleOCR(this)">
-        </label>
+  <!-- 視圖 1: 播放與默書模式 -->
+  <div id="viewPlay" class="view-pane active">
+    <!-- 置頂控制台 -->
+    <div class="player-header">
+      <div class="ctrl-circle-group">
+        <button class="btn-circle" onclick="manualPrev()">⏮</button>
+        <button class="btn-circle play-main" id="playBtn" onclick="togglePlay()">▶</button>
+        <button class="btn-circle" onclick="manualNext()">⏭</button>
       </div>
+
+      <!-- 參數膠囊 (點擊可快捷修改) -->
+      <div class="capsule-bar" onclick="switchView('edit')">
+        <div id="capsuleLangText">🇨🇳 北京普通話 · 0.8x</div>
+        <div id="capsuleDelayText">停頓 <span>5s</span> · 讀 <span>2次</span></div>
+      </div>
+      <div id="countdownStatus" style="font-size: 13px; font-weight: 700; color: #FF3B30; min-height: 16px;"></div>
     </div>
 
-    <div class="card" style="display: flex; flex-direction: column;">
-      <p style="font-size: 13px; color: var(--subtext); margin-bottom: 6px;">
-        課文內容（修改後切換到「默書模式」即可實時轉換）：
-      </p>
-      <textarea id="textInput" placeholder="請在此輸入或貼上課文範圍...">Apple 今晨正式向開發者推送 iOS 27.3 Beta 1，距離上一版本僅隔一星期的時間。當中以專屬單手操作模式最吸引果粉眼球。</textarea>
+    <!-- 句子滾動大卡片 -->
+    <div class="sentence-list" id="sentenceContainer"></div>
+  </div>
+
+  <!-- 視圖 2: 編輯與設定模式 -->
+  <div id="viewEdit" class="view-pane">
+    <div class="card">
+      <div class="field-label">課文標題</div>
+      <input type="text" id="titleInput" value="望梅止渴" placeholder="例如：第十三課 望梅止渴">
       
-      <div style="margin-top: 10px;">
-        <span class="setting-label">朗讀語言模式</span>
-        <div class="lang-selector">
-          <div class="lang-opt active" id="lang-auto" onclick="setLangMode('auto')">🤖 自動識別</div>
-          <div class="lang-opt" id="lang-zh" onclick="setLangMode('zh')">🇨🇳 北京普通話</div>
-          <div class="lang-opt" id="lang-en" onclick="setLangMode('en')">🇬🇧 英式英文</div>
+      <div class="field-label" style="margin-top: 10px;">課文內容 (直接貼上或修改)</div>
+      <textarea id="textInput" placeholder="請在此貼上課文內容...">有一年夏天，曹操率領軍隊去攻打敵人。
+一天，軍隊來到一片大荒原。
+那天驕陽似火，地面熱浪滾滾，酷熱的空氣使人感到窒息，將士都口渴極了。可是，眼前除了一片乾裂的荒土和飛揚的灰塵，甚麼也看不見。
+將士走得愈來愈慢，更有幾個體弱的士兵暈倒了。曹操心裏很着急，恐怕軍隊前進的速度會受影響。他必須儘快找到</textarea>
+
+      <div class="btn-row">
+        <button class="btn-flat secondary" onclick="pasteFromClipboard()">📋 貼上剪貼簿</button>
+        <button class="btn-flat primary" onclick="saveToHistory()">💾 儲存到題庫</button>
+      </div>
+    </div>
+
+    <!-- 參數與標點設定 -->
+    <div class="card">
+      <div class="setting-item">
+        <div>
+          <div style="font-weight: 600;">朗讀標點符號</div>
+          <div style="font-size: 12px; color: var(--subtext);">唸出「逗號」、「句號」以提醒小朋友</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="readPunctuationToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div>
+          <div style="font-weight: 600;">語言選擇</div>
+          <div style="font-size: 12px; color: var(--subtext);">指定英式發音或北京腔</div>
+        </div>
+        <select id="langSelect" style="padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text);">
+          <option value="auto">🤖 自動識別</option>
+          <option value="zh" selected>🇨🇳 北京普通話</option>
+          <option value="en">🇬🇧 英式英文</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <span style="font-weight: 600;">每句停頓時間</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="range" id="pauseRange" min="2" max="15" value="5" oninput="document.getElementById('pauseValShow').innerText = this.value + 's'">
+          <span id="pauseValShow" style="font-weight: 700; width: 30px;">5s</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <span style="font-weight: 600;">朗讀語速</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="range" id="rateRange" min="0.5" max="1.2" step="0.1" value="0.8" oninput="document.getElementById('rateValShow').innerText = this.value + 'x'">
+          <span id="rateValShow" style="font-weight: 700; width: 30px;">0.8x</span>
+        </div>
+      </div>
+
+      <div class="setting-item">
+        <span style="font-weight: 600;">每句重複次數</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="range" id="repeatRange" min="1" max="3" value="2" oninput="document.getElementById('repeatValShow').innerText = this.value + '次'">
+          <span id="repeatValShow" style="font-weight: 700; width: 30px;">2次</span>
         </div>
       </div>
     </div>
 
+    <!-- AI 影相直連設定 -->
     <div class="card">
-      <div class="setting-row">
-        <span class="setting-label">標點停頓時間</span>
-        <div class="slider-control">
-          <input type="range" id="pauseInput" min="1" max="15" value="5" oninput="updateSettingsDisplay()">
-          <span id="pauseVal" style="font-weight: 600; width: 36px;">5s</span>
-        </div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">朗讀速度</span>
-        <div class="slider-control">
-          <input type="range" id="rateInput" min="0.5" max="1.2" step="0.1" value="0.8" oninput="updateSettingsDisplay()">
-          <span id="rateVal" style="font-weight: 600; width: 36px;">0.8x</span>
-        </div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">每句讀幾次</span>
-        <div class="slider-control">
-          <input type="range" id="repeatInput" min="1" max="3" value="2" oninput="updateSettingsDisplay()">
-          <span id="repeatVal" style="font-weight: 600; width: 36px;">2次</span>
-        </div>
-      </div>
+      <div class="field-label">Gemini API Key（選填，填咗可支援相機直出純文字）</div>
+      <input type="text" id="geminiApiKey" placeholder="貼上 Google AI Studio Key 可啟動相機直連" onchange="localStorage.setItem('gemini_key', this.value)">
+      <div style="font-size: 11px; color: var(--subtext); margin-top: 4px;">冇 Key 亦完全無礙，直接喺對話影相畀我提取最準！</div>
     </div>
   </div>
 
-  <!-- 分頁 2: 默書播放（全新上下雙結構） -->
-  <div id="panePlay" class="content-pane">
-    <div class="progress-bar-container">
-      <div id="progressFill" class="progress-bar-fill"></div>
-    </div>
-
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px;">
-      <span id="currentLangTag" style="font-size: 13px; font-weight: 600; color: var(--primary);">準備就緒</span>
-      <div id="timerTag" class="countdown-timer"></div>
-    </div>
-
-    <!-- 上半部：整篇課文全覽與即時 Highlighting -->
-    <div class="card article-preview-card" id="fullArticleContainer"></div>
-
-    <!-- 下半部：可點擊的單句清單 -->
-    <div class="sentence-list" id="sentenceListContainer"></div>
-
-    <div class="controls-wrapper">
-      <button class="btn-ctrl btn-prev" onclick="manualPrev()">⏮️ 上句</button>
-      <button class="btn-ctrl btn-play" id="playBtn" onclick="togglePlay()">▶️ 播放</button>
-      <button class="btn-ctrl btn-next" onclick="manualNext()">⏭️ 下句</button>
+  <!-- 題庫對話框 (Modal) -->
+  <div id="historyModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="width: 100%; max-height: 80vh; display: flex; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 style="font-size: 17px;">📚 已儲存課文庫</h3>
+        <button class="icon-btn" onclick="closeSavedList()">✕</button>
+      </div>
+      <div id="historyListContainer" style="overflow-y: auto; flex: 1;"></div>
     </div>
   </div>
 
   <div id="loadingOverlay">
     <div style="font-size: 32px; margin-bottom: 10px;">⏳</div>
-    <div id="loadingText">正在辨識文字中...</div>
+    <div id="loadingMsg">處理中...</div>
   </div>
 
   <script>
@@ -360,54 +418,57 @@
     let currentRepeat = 0;
     let isPlaying = false;
     let countdownInterval = null;
-    let selectedLangMode = 'auto';
+    let currentView = 'play';
     let voices = [];
 
+    // 標點符號中文讀音字典
+    const punctMap = {
+      '，': '，逗號', '、': '，頓號', '。': '，句號',
+      '！': '，感嘆號', '？': '，問號', '；': '，分號',
+      ',': ' comma', '.': ' period', '!': ' exclamation mark', '?': ' question mark'
+    };
+
     function loadVoices() {
-      if ('speechSynthesis' in window) {
-        voices = window.speechSynthesis.getVoices();
-      }
+      if ('speechSynthesis' in window) voices = window.speechSynthesis.getVoices();
     }
     loadVoices();
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+    if ('speechSynthesis' in window) window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    // 初始化儲存的 API Key 與設定
+    window.onload = () => {
+      const savedKey = localStorage.getItem('gemini_key');
+      if (savedKey) document.getElementById('geminiApiKey').value = savedKey;
+      prepareSentences();
+    };
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
     }
 
-    function setLangMode(mode) {
-      selectedLangMode = mode;
-      document.querySelectorAll('.lang-opt').forEach(el => el.classList.remove('active'));
-      document.getElementById('lang-' + mode).classList.add('active');
+    function toggleView() {
+      switchView(currentView === 'play' ? 'edit' : 'play');
     }
 
-    function updateSettingsDisplay() {
-      document.getElementById('pauseVal').innerText = document.getElementById('pauseInput').value + 's';
-      document.getElementById('rateVal').innerText = document.getElementById('rateInput').value + 'x';
-      document.getElementById('repeatVal').innerText = document.getElementById('repeatInput').value + '次';
-    }
-
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.content-pane').forEach(p => p.classList.remove('active'));
-      
-      if (tab === 'edit') {
-        document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-        document.getElementById('paneEdit').classList.add('active');
-        stopPlayback();
-      } else {
-        document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-        document.getElementById('panePlay').classList.add('active');
+    function switchView(view) {
+      currentView = view;
+      document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active'));
+      if (view === 'play') {
+        document.getElementById('viewPlay').classList.add('active');
+        document.getElementById('navLeftBtn').innerText = '⚙️ 編輯';
         prepareSentences();
+      } else {
+        document.getElementById('viewEdit').classList.add('active');
+        document.getElementById('navLeftBtn').innerText = '完成';
+        stopPlayback();
       }
     }
 
-    // 拼音轉換函式（保證帶聲調）
+    // 拼音轉換 (Ruby)
     function toPinyinRuby(text) {
-      const pinyinLib = window.pinyinPro;
-      if (!pinyinLib || typeof pinyinLib.pinyin !== 'function') {
-        return text;
-      }
+      const lib = window.pinyinPro;
+      if (!lib || typeof lib.pinyin !== 'function') return text;
       try {
-        const list = pinyinLib.pinyin(text, { type: 'all' });
+        const list = lib.pinyin(text, { type: 'all' });
         let res = '';
         list.forEach(item => {
           if (/[\u4e00-\u9fa5]/.test(item.origin)) {
@@ -417,115 +478,80 @@
           }
         });
         return res;
-      } catch (err) {
+      } catch (e) {
         return text;
       }
     }
 
-    async function handleOCR(input) {
-      if (!input.files || input.files.length === 0) return;
-      const file = input.files[0];
-      const overlay = document.getElementById('loadingOverlay');
-      overlay.style.display = 'flex';
-
-      try {
-        const worker = await Tesseract.createWorker(['chi_tra', 'chi_sim', 'eng']);
-        const ret = await worker.recognize(file);
-        document.getElementById('textInput').value = ret.data.text;
-        await worker.terminate();
-      } catch (err) {
-        alert('OCR 辨識失敗，請重試或直接貼上文字。');
-      } finally {
-        overlay.style.display = 'none';
-        input.value = '';
-      }
-    }
-
     function isSentenceEnglish(text) {
-      if (selectedLangMode === 'en') return true;
-      if (selectedLangMode === 'zh') return false;
-      const engLetters = (text.match(/[a-zA-Z]/g) || []).length;
-      const chiChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-      return engLetters > chiChars;
+      const mode = document.getElementById('langSelect').value;
+      if (mode === 'en') return true;
+      if (mode === 'zh') return false;
+      const eng = (text.match(/[a-zA-Z]/g) || []).length;
+      const chi = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+      return eng > chi;
     }
 
+    // 斷句並保留標點
     function prepareSentences() {
+      const title = document.getElementById('titleInput').value || '未命名課文';
+      document.getElementById('articleTitleDisplay').innerText = title;
+
       const raw = document.getElementById('textInput').value;
       if (!raw.trim()) {
-        sentences = ["請先到第一頁輸入課文。"];
+        sentences = ["請先到編輯頁面貼上課文。"];
       } else {
-        const tokens = raw.split(/[\n\r，。！？；,!?;:]+/).map(s => s.trim()).filter(s => s.length > 0);
-        sentences = tokens.length > 0 ? tokens : [raw.trim()];
+        // 按照標點及換行拆分，但保留標點符號在該句尾部
+        const regex = /[^，。！？；\n\r,!?;]+[，。！？；,!?;]?/g;
+        const matches = raw.match(regex);
+        sentences = matches ? matches.map(s => s.trim()).filter(s => s.length > 0) : [raw.trim()];
       }
-      
-      const overallEng = isSentenceEnglish(sentences.join(''));
-      document.getElementById('detectedLangBadge').innerText = overallEng ? "🇬🇧 英式英語" : "🇨🇳 普通話（含拼音）";
 
-      renderFullArticle();
-      renderList();
+      // 更新膠囊狀態列
+      const isEng = isSentenceEnglish(sentences.join(''));
+      const rate = document.getElementById('rateRange').value;
+      const pauseSec = document.getElementById('pauseRange').value;
+      const rep = document.getElementById('repeatRange').value;
+      
+      document.getElementById('capsuleLangText').innerText = (isEng ? "🇬🇧 英式英文" : "🇨🇳 北京普通話") + ` · ${rate}x`;
+      document.getElementById('capsuleDelayText').innerHTML = `停頓 <span>${pauseSec}s</span> · 讀 <span>${rep}次</span>`;
+
+      renderCards();
       currentIndex = 0;
       currentRepeat = 0;
-      updateDisplay();
+      updateActiveCard();
     }
 
-    // 渲染上半部：整篇完整課文
-    function renderFullArticle() {
-      const box = document.getElementById('fullArticleContainer');
-      box.innerHTML = '';
-      sentences.forEach((s, idx) => {
-        const span = document.createElement('span');
-        span.id = `chunk-${idx}`;
-        span.className = `article-chunk ${idx === currentIndex ? 'highlight' : ''}`;
-        const eng = isSentenceEnglish(s);
-        span.innerHTML = (eng ? s : toPinyinRuby(s)) + ' ';
-        box.appendChild(span);
-      });
-    }
-
-    // 渲染下半部：單句清單
-    function renderList() {
-      const container = document.getElementById('sentenceListContainer');
+    function renderCards() {
+      const container = document.getElementById('sentenceContainer');
       container.innerHTML = '';
       sentences.forEach((s, idx) => {
-        const div = document.createElement('div');
-        div.className = `sentence-item ${idx === currentIndex ? 'active' : ''}`;
-        const eng = isSentenceEnglish(s);
-        const displayContent = eng ? s : toPinyinRuby(s);
-        div.innerHTML = `<div>${idx + 1}. ${displayContent}</div>`;
-        div.onclick = () => {
+        const isEng = isSentenceEnglish(s);
+        const card = document.createElement('div');
+        card.className = `sentence-card ${idx === currentIndex ? 'active' : ''}`;
+        card.id = `card-${idx}`;
+        card.innerHTML = `
+          <div class="card-idx-badge">${idx + 1}</div>
+          <div class="card-text-body">${isEng ? s : toPinyinRuby(s)}</div>
+        `;
+        card.onclick = () => {
           stopPlayback();
           currentIndex = idx;
           currentRepeat = 0;
-          updateDisplay();
+          updateActiveCard();
           playCurrent();
         };
-        container.appendChild(div);
+        container.appendChild(card);
       });
     }
 
-    function updateDisplay() {
-      if (sentences.length === 0) return;
-      const current = sentences[currentIndex];
-      const eng = isSentenceEnglish(current);
-
-      document.getElementById('currentLangTag').innerText = eng ? "🇬🇧 英式英語朗讀" : "🇨🇳 普通話（北京腔調）";
-
-      // 更新進度條
-      const progress = ((currentIndex + 1) / sentences.length) * 100;
-      document.getElementById('progressFill').style.width = `${progress}%`;
-
-      // 上半部 Highlight 並自動捲動
-      document.querySelectorAll('.article-chunk').forEach((el, idx) => {
+    function updateActiveCard() {
+      document.querySelectorAll('.sentence-card').forEach((c, idx) => {
         const isActive = (idx === currentIndex);
-        el.classList.toggle('highlight', isActive);
+        c.classList.toggle('active', isActive);
         if (isActive) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          c.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-      });
-
-      // 下半部清單同步 Active
-      document.querySelectorAll('.sentence-item').forEach((el, idx) => {
-        el.classList.toggle('active', idx === currentIndex);
       });
     }
 
@@ -540,33 +566,45 @@
       }
     }
 
+    // 處理朗讀文本（若開啟標點朗讀則替換）
+    function getSpokenText(rawText) {
+      const shouldReadPunct = document.getElementById('readPunctuationToggle').checked;
+      if (!shouldReadPunct) return rawText;
+
+      let spoken = rawText;
+      for (const [p, spokenWord] of Object.entries(punctMap)) {
+        spoken = spoken.split(p).join(spokenWord);
+      }
+      return spoken;
+    }
+
     function playCurrent() {
       if (currentIndex >= sentences.length) {
         stopPlayback();
-        document.getElementById('timerTag').innerText = "🎉 默書完畢！好叻仔！";
+        document.getElementById('countdownStatus').innerText = "🎉 默書完畢！好叻仔！";
         return;
       }
 
       isPlaying = true;
-      document.getElementById('playBtn').innerText = "⏸️ 暫停";
-      updateDisplay();
+      document.getElementById('playBtn').innerText = "⏸";
+      updateActiveCard();
 
-      const text = sentences[currentIndex];
-      const eng = isSentenceEnglish(text);
-      const utter = new SpeechSynthesisUtterance(text);
+      const origText = sentences[currentIndex];
+      const isEng = isSentenceEnglish(origText);
+      const textToSpeak = getSpokenText(origText);
 
-      utter.voice = getBestVoice(eng);
-      utter.rate = parseFloat(document.getElementById('rateInput').value);
+      const utter = new SpeechSynthesisUtterance(textToSpeak);
+      utter.voice = getBestVoice(isEng);
+      utter.rate = parseFloat(document.getElementById('rateRange').value);
 
       utter.onend = () => {
-        const maxRepeat = parseInt(document.getElementById('repeatInput').value);
+        const maxRep = parseInt(document.getElementById('repeatRange').value);
         currentRepeat++;
-
-        if (currentRepeat < maxRepeat) {
+        if (currentRepeat < maxRep) {
           startCountdown(2, () => playCurrent());
         } else {
           currentRepeat = 0;
-          const pauseSec = parseInt(document.getElementById('pauseInput').value);
+          const pauseSec = parseInt(document.getElementById('pauseRange').value);
           startCountdown(pauseSec, () => {
             currentIndex++;
             playCurrent();
@@ -581,7 +619,7 @@
     function startCountdown(seconds, callback) {
       clearInterval(countdownInterval);
       let left = seconds;
-      const tag = document.getElementById('timerTag');
+      const tag = document.getElementById('countdownStatus');
       tag.innerText = `⏳ 停頓中，請默寫... (${left}s)`;
 
       countdownInterval = setInterval(() => {
@@ -597,15 +635,15 @@
     }
 
     function togglePlay() {
-      if (isPlaying) { stopPlayback(); } else { playCurrent(); }
+      if (isPlaying) stopPlayback(); else playCurrent();
     }
 
     function stopPlayback() {
       isPlaying = false;
       window.speechSynthesis.cancel();
       clearInterval(countdownInterval);
-      document.getElementById('timerTag').innerText = "";
-      document.getElementById('playBtn').innerText = "▶️ 播放";
+      document.getElementById('countdownStatus').innerText = "";
+      document.getElementById('playBtn').innerText = "▶";
     }
 
     function manualNext() {
@@ -613,7 +651,7 @@
       if (currentIndex < sentences.length - 1) {
         currentIndex++;
         currentRepeat = 0;
-        updateDisplay();
+        updateActiveCard();
       }
     }
 
@@ -622,8 +660,67 @@
       if (currentIndex > 0) {
         currentIndex--;
         currentRepeat = 0;
-        updateDisplay();
+        updateActiveCard();
       }
+    }
+
+    async function pasteFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) document.getElementById('textInput').value = text;
+      } catch (err) {
+        alert('請長按文字框直接貼上。');
+      }
+    }
+
+    // 題庫儲存與載入
+    function saveToHistory() {
+      const title = document.getElementById('titleInput').value || '未命名課文';
+      const text = document.getElementById('textInput').value;
+      if (!text.trim()) return alert('請先輸入課文！');
+
+      const history = JSON.parse(localStorage.getItem('dictation_history') || '[]');
+      history.unshift({ title, text, date: new Date().toLocaleDateString() });
+      localStorage.setItem('dictation_history', JSON.stringify(history.slice(0, 20)));
+      alert('已成功儲存到課文庫！');
+      switchView('play');
+    }
+
+    function openSavedList() {
+      const container = document.getElementById('historyListContainer');
+      const history = JSON.parse(localStorage.getItem('dictation_history') || '[]');
+      container.innerHTML = history.length === 0 ? '<div style="color:gray;text-align:center;padding:20px;">暫無儲存課文</div>' : '';
+
+      history.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'history-item';
+        row.innerHTML = `
+          <div>
+            <div style="font-weight:700;">${item.title}</div>
+            <div style="font-size:12px;color:gray;">${item.date}</div>
+          </div>
+          <button style="border:none;background:#FF3B30;color:white;border-radius:6px;padding:4px 8px;font-size:12px;" onclick="event.stopPropagation();deleteHistory(${idx})">刪除</button>
+        `;
+        row.onclick = () => {
+          document.getElementById('titleInput').value = item.title;
+          document.getElementById('textInput').value = item.text;
+          closeSavedList();
+          switchView('play');
+        };
+        container.appendChild(row);
+      });
+      document.getElementById('historyModal').style.display = 'flex';
+    }
+
+    function deleteHistory(idx) {
+      const history = JSON.parse(localStorage.getItem('dictation_history') || '[]');
+      history.splice(idx, 1);
+      localStorage.setItem('dictation_history', JSON.stringify(history));
+      openSavedList();
+    }
+
+    function closeSavedList() {
+      document.getElementById('historyModal').style.display = 'none';
     }
   </script>
 </body>

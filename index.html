@@ -41,30 +41,33 @@
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
     
-    /* 核心修正：外層結構固定高度，但內部視圖自由滾動 */
+    /* 根除卡死問題：流暢全屏高度與安全捲動設定 */
     html, body {
       height: 100%;
-      width: 100%;
-      overflow: hidden;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
-      display: flex;
-      flex-direction: column;
-      max-width: 500px;
-      margin: 0 auto;
-      transition: background 0.3s ease;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
     }
 
-    /* 頂部全置頂保護容器：永遠固定喺最頂 */
-    .top-fixed-area {
+    .app-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 500px;
+      margin: 0 auto;
+      background: var(--bg);
+    }
+
+    /* 頂部控制面板：固定在最頂，不隨滾動偏移 */
+    .top-fixed-panel {
       flex-shrink: 0;
       background: var(--bg);
       padding: env(safe-area-inset-top) 16px 8px 16px;
       border-bottom: 1px solid var(--border);
-      z-index: 50;
+      z-index: 100;
     }
 
     .nav-bar {
@@ -118,23 +121,19 @@
     }
     .capsule-bar span { font-weight: 600; color: var(--primary); }
 
-    /* 關鍵修復：獨立滾動區，開啟 iOS 原生滾動手感 */
-    .scroll-pane {
+    /* 主滾動區：確保滾動流暢不卡死 */
+    .scroll-body {
       flex: 1;
-      height: 100%;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       padding: 12px 16px calc(env(safe-area-inset-bottom) + 30px) 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
     }
 
     .sentence-card {
       background: var(--card-bg); border-radius: 16px; padding: 14px 16px;
       display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--border);
       cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-      flex-shrink: 0;
+      margin-bottom: 12px;
     }
     .card-idx-badge {
       width: 26px; height: 26px; border-radius: 50%;
@@ -155,15 +154,11 @@
     ruby { ruby-align: center; margin: 0 1px; }
     rt { font-size: 11px; color: var(--pinyin-color); font-weight: 600; line-height: 1; }
 
-    /* 編輯視圖卡片 */
-    .card { background: var(--card-bg); border-radius: 14px; padding: 14px; border: 1px solid var(--border); flex-shrink: 0; }
-    .field-header {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
-    }
+    /* 編輯視圖卡片樣式 */
+    .card { background: var(--card-bg); border-radius: 14px; padding: 14px; border: 1px solid var(--border); margin-bottom: 12px; }
+    .field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .field-label { font-size: 13px; color: var(--subtext); font-weight: 600; }
-    .btn-text-clear {
-      background: transparent; border: none; color: #FF3B30; font-size: 12px; font-weight: 600; cursor: pointer;
-    }
+    .btn-text-clear { background: transparent; border: none; color: #FF3B30; font-size: 12px; font-weight: 600; cursor: pointer; }
     input[type=text], textarea, select {
       width: 100%; border: 1px solid var(--border); border-radius: 10px;
       padding: 10px 12px; font-size: 15px; background: transparent; color: var(--text); font-family: inherit;
@@ -197,73 +192,56 @@
       padding: 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border);
       display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer;
     }
-    #loadingOverlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6); color: white;
-      display: none; flex-direction: column; align-items: center; justify-content: center; font-size: 16px; z-index: 99;
-    }
   </style>
 </head>
 <body>
 
-  <!-- 頂部置頂釘死區域 -->
-  <div class="top-fixed-area">
-    <div class="nav-bar">
-      <button class="icon-btn" onclick="toggleView()" id="navLeftBtn">⚙️ 編輯</button>
-      <div class="nav-title" id="articleTitleDisplay">第九課 狐狸和葡萄</div>
-      <div style="display: flex; gap: 4px;">
-        <button class="icon-btn" onclick="toggleDarkMode()">🌓</button>
-        <button class="icon-btn" onclick="openSavedList()">📚 題庫</button>
+  <div class="app-wrapper">
+    <!-- 頂部永久固定面板 -->
+    <div class="top-fixed-panel">
+      <div class="nav-bar">
+        <button class="icon-btn" onclick="toggleView()" id="navLeftBtn">⚙️ 編輯</button>
+        <div class="nav-title" id="articleTitleDisplay">第九課 狐狸和葡萄</div>
+        <div style="display: flex; gap: 4px;">
+          <button class="icon-btn" onclick="toggleDarkMode()">🌓</button>
+          <button class="icon-btn" onclick="openSavedList()">📚 題庫</button>
+        </div>
+      </div>
+
+      <!-- 播放器控制組件 -->
+      <div class="player-header" id="topPlayerHeader">
+        <div class="ctrl-circle-group">
+          <button class="btn-circle" onclick="manualPrev()">⏮</button>
+          <button class="btn-circle play-main" id="playBtn" onclick="togglePlay()">▶</button>
+          <button class="btn-circle" onclick="manualNext()">⏭</button>
+        </div>
+
+        <div class="capsule-bar" onclick="switchView('edit')">
+          <div id="capsuleLangText">普通話朗讀 · 0.8x</div>
+          <div id="capsuleDelayText">停頓 <span>5s</span> · 讀 <span>1次</span></div>
+        </div>
+        <div id="countdownStatus" style="font-size: 12px; font-weight: 700; color: #FF3B30; min-height: 14px;"></div>
       </div>
     </div>
 
-    <!-- 播放器控制列 -->
-    <div class="player-header" id="topPlayerHeader">
-      <div class="ctrl-circle-group">
-        <button class="btn-circle" onclick="manualPrev()">⏮</button>
-        <button class="btn-circle play-main" id="playBtn" onclick="togglePlay()">▶</button>
-        <button class="btn-circle" onclick="manualNext()">⏭</button>
-      </div>
-
-      <div class="capsule-bar" onclick="switchView('edit')">
-        <div id="capsuleLangText">普通話朗讀 · 0.8x</div>
-        <div id="capsuleDelayText">停頓 <span>5s</span> · 讀 <span>1次</span></div>
-      </div>
-      <div id="countdownStatus" style="font-size: 12px; font-weight: 700; color: #FF3B30; min-height: 14px;"></div>
+    <!-- 視圖 1: 默書播放 (卡片滾動區) -->
+    <div id="viewPlay" class="scroll-body" style="display: block;">
+      <div id="sentenceContainer"></div>
     </div>
-  </div>
 
-  <!-- 視圖 1: 播放句子卡片滾動區 -->
-  <div id="viewPlay" class="scroll-pane" style="display: flex;">
-    <div id="sentenceContainer" style="display: flex; flex-direction: column; gap: 12px; width: 100%;"></div>
-  </div>
+    <!-- 視圖 2: 編輯與設定 (表單滾動區) -->
+    <div id="viewEdit" class="scroll-body" style="display: none;">
+      <div class="card">
+        <div class="field-header">
+          <span class="field-label">課文標題</span>
+        </div>
+        <input type="text" id="titleInput" value="第九課 狐狸和葡萄" placeholder="課文名稱">
 
-  <!-- 視圖 2: 編輯與設定模式 -->
-  <div id="viewEdit" class="scroll-pane" style="display: none;">
-    <div class="card">
-      <div class="field-header">
-        <span class="field-label">課文標題</span>
-      </div>
-      <input type="text" id="titleInput" value="第九課 狐狸和葡萄" placeholder="課文名稱">
-      
-      <div class="field-header" style="margin-top: 10px;">
-        <span class="field-label">GitHub AI 影相直連（過濾拼音與筆跡）</span>
-      </div>
-      <div class="btn-row">
-        <label class="btn-flat" style="background:#5856D6; color:white;">
-          📷 影相提純
-          <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="callGitHubOCR(this)">
-        </label>
-        <label class="btn-flat" style="background:#007AFF; color:white;">
-          🖼️ 相簿選取
-          <input type="file" accept="image/*" style="display:none;" onchange="callGitHubOCR(this)">
-        </label>
-      </div>
-
-      <div class="field-header" style="margin-top: 12px;">
-        <span class="field-label">課文內容</span>
-        <button class="btn-text-clear" onclick="clearTextContent()">🗑️ 一鍵清空內容</button>
-      </div>
-      <textarea id="textInput">天氣很熱，
+        <div class="field-header" style="margin-top: 12px;">
+          <span class="field-label">課文內容</span>
+          <button class="btn-text-clear" onclick="clearTextContent()">🗑️ 一鍵清空</button>
+        </div>
+        <textarea id="textInput" placeholder="請在此貼上課文文字...">天氣很熱，
 太陽火辣辣地照著，
 大地像個火爐。
 狐狸又餓又渴，
@@ -272,90 +250,82 @@
 狐狸一邊在路上走著，
 一邊東張西望</textarea>
 
-      <div class="btn-row">
-        <button class="btn-flat secondary" onclick="pasteFromClipboard()">📋 貼上文字</button>
-        <button class="btn-flat primary" onclick="saveToHistory()">💾 儲存課文</button>
-      </div>
-    </div>
-
-    <!-- 語言與語音選擇卡片 -->
-    <div class="card">
-      <div class="setting-item">
-        <span class="field-label">語言種類</span>
-        <select id="langTypeSelect" onchange="filterVoices()" style="width: 58%;">
-          <option value="zh" selected>🇨🇳 普通話 / 國語</option>
-          <option value="en">🇬🇧 英語 (英式/美式)</option>
-        </select>
-      </div>
-
-      <div class="setting-item">
-        <span class="field-label">朗讀聲音引擎</span>
-        <select id="voiceDropdown" style="width: 58%; font-size: 13px;">
-          <option value="">正在載入系統聲音...</option>
-        </select>
-      </div>
-
-      <div class="setting-item">
-        <div>
-          <div style="font-weight: 600; font-size: 14px;">朗讀標點符號</div>
-          <div style="font-size: 11px; color: var(--subtext);">唸出「逗號」、「句號」提醒小朋友</div>
-        </div>
-        <label class="toggle-switch">
-          <input type="checkbox" id="readPunctuationToggle">
-          <span class="slider"></span>
-        </label>
-      </div>
-
-      <!-- 極限語速 0.1x 至 4.0x -->
-      <div class="setting-item">
-        <div>
-          <span class="field-label">朗讀速度 (0.1x ~ 4.0x)</span>
-          <div style="font-size: 11px; color: var(--subtext);">支援極慢練讀與極限速聽</div>
-        </div>
-        <div style="display: flex; align-items: center; gap: 8px; width: 45%;">
-          <input type="range" id="rateRange" min="0.1" max="4.0" step="0.1" value="0.8" oninput="updateRateLabel(this.value)">
-          <span id="rateValShow" style="font-weight: 700; width: 38px;">0.8x</span>
+        <div class="btn-row">
+          <button class="btn-flat secondary" onclick="pasteFromClipboard()">📋 貼上剪貼簿</button>
+          <button class="btn-flat primary" onclick="saveToHistory()">💾 儲存課文</button>
         </div>
       </div>
 
-      <div class="setting-item">
-        <span class="field-label">每句停頓時間</span>
-        <div style="display: flex; align-items: center; gap: 8px; width: 45%;">
-          <input type="range" id="pauseRange" min="1" max="15" value="5" oninput="document.getElementById('pauseValShow').innerText = this.value + 's'">
-          <span id="pauseValShow" style="font-weight: 700; width: 38px;">5s</span>
+      <!-- 語音引擎設定（含試聽功能） -->
+      <div class="card">
+        <div class="setting-item">
+          <span class="field-label">語言種類</span>
+          <select id="langTypeSelect" onchange="filterVoices()" style="width: 58%;">
+            <option value="zh" selected>🇨🇳 普通話 / 國語</option>
+            <option value="en">🇬🇧 英語 (英式/美式)</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <span class="field-label">朗讀聲音引擎</span>
+          <div style="display: flex; gap: 6px; width: 60%; align-items: center;">
+            <select id="voiceDropdown" style="flex: 1; font-size: 13px;">
+              <option value="">載入聲音中...</option>
+            </select>
+            <button class="btn-flat secondary" style="flex: none; padding: 8px 10px; font-size: 13px;" onclick="previewVoice()">🔊 試聽</button>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <div style="font-weight: 600; font-size: 14px;">朗讀標點符號</div>
+            <div style="font-size: 11px; color: var(--subtext);">唸出「逗號」、「句號」提醒小朋友</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="readPunctuationToggle">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <span class="field-label">朗讀速度 (0.1x ~ 4.0x)</span>
+            <div style="font-size: 11px; color: var(--subtext);">支援極慢練讀與極限速聽</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; width: 45%;">
+            <input type="range" id="rateRange" min="0.1" max="4.0" step="0.1" value="0.8" oninput="updateRateLabel(this.value)">
+            <span id="rateValShow" style="font-weight: 700; width: 38px;">0.8x</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <span class="field-label">每句停頓時間</span>
+          <div style="display: flex; align-items: center; gap: 8px; width: 45%;">
+            <input type="range" id="pauseRange" min="1" max="15" value="5" oninput="document.getElementById('pauseValShow').innerText = this.value + 's'">
+            <span id="pauseValShow" style="font-weight: 700; width: 38px;">5s</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <span class="field-label">每句重複次數</span>
+          <div style="display: flex; align-items: center; gap: 8px; width: 45%;">
+            <input type="range" id="repeatRange" min="1" max="5" value="1" oninput="document.getElementById('repeatValShow').innerText = this.value + '次'">
+            <span id="repeatValShow" style="font-weight: 700; width: 38px;">1次</span>
+          </div>
         </div>
       </div>
-
-      <div class="setting-item">
-        <span class="field-label">每句重複次數</span>
-        <div style="display: flex; align-items: center; gap: 8px; width: 45%;">
-          <input type="range" id="repeatRange" min="1" max="5" value="1" oninput="document.getElementById('repeatValShow').innerText = this.value + '次'">
-          <span id="repeatValShow" style="font-weight: 700; width: 38px;">1次</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- GitHub Token 區（代碼留空，避免觸發安全警告） -->
-    <div class="card">
-      <div class="field-label">GitHub Token（貼入一次永久記住）</div>
-      <input type="text" id="githubToken" value="" placeholder="貼上 ghp_ 開頭的 GitHub Token" onchange="localStorage.setItem('gh_token', this.value.trim())">
     </div>
   </div>
 
   <!-- 題庫對話框 -->
-  <div id="historyModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; align-items: center; justify-content: center; padding: 20px;">
-    <div class="card" style="width: 100%; max-height: 80vh; display: flex; flex-direction: column;">
+  <div id="historyModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px;">
+    <div class="card" style="width: 100%; max-height: 80vh; display: flex; flex-direction: column; margin-bottom: 0;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
         <h3 style="font-size: 16px;">📚 已儲存課文庫</h3>
         <button class="icon-btn" onclick="closeSavedList()">✕</button>
       </div>
       <div id="historyListContainer" style="overflow-y: auto; flex: 1;"></div>
     </div>
-  </div>
-
-  <div id="loadingOverlay">
-    <div style="font-size: 32px; margin-bottom: 10px;">⏳</div>
-    <div id="loadingMsg">AI 正在提純課文（過濾拼音與筆跡）...</div>
   </div>
 
   <script>
@@ -396,15 +366,13 @@
         matchedVoices = availableVoices.filter(v => v.lang.toLowerCase().startsWith('en'));
       }
 
-      if (matchedVoices.length === 0) {
-        matchedVoices = availableVoices;
-      }
+      if (matchedVoices.length === 0) matchedVoices = availableVoices;
 
       matchedVoices.forEach((voice) => {
         const opt = document.createElement('option');
         opt.value = voice.name;
         opt.textContent = `${voice.name} (${voice.lang})`;
-        if (langType === 'zh' && (voice.lang.includes('CN') || voice.name.includes('Beijing') || voice.name.includes('Tingting') || voice.name.includes('Mandarin'))) {
+        if (langType === 'zh' && (voice.lang.includes('CN') || voice.name.includes('Beijing') || voice.name.includes('Tingting') || voice.name.includes('Mandarin') || voice.name.includes('婷婷'))) {
           opt.selected = true;
         }
         if (langType === 'en' && (voice.lang.includes('GB') || voice.name.includes('Daniel') || voice.name.includes('Oliver'))) {
@@ -420,8 +388,6 @@
     }
 
     window.onload = () => {
-      const savedToken = localStorage.getItem('gh_token');
-      if (savedToken) document.getElementById('githubToken').value = savedToken;
       prepareSentences();
     };
 
@@ -442,14 +408,14 @@
     function switchView(view) {
       currentView = view;
       if (view === 'play') {
-        document.getElementById('viewPlay').style.display = 'flex';
+        document.getElementById('viewPlay').style.display = 'block';
         document.getElementById('viewEdit').style.display = 'none';
         document.getElementById('topPlayerHeader').style.display = 'flex';
         document.getElementById('navLeftBtn').innerText = '⚙️ 編輯';
         prepareSentences();
       } else {
         document.getElementById('viewPlay').style.display = 'none';
-        document.getElementById('viewEdit').style.display = 'flex';
+        document.getElementById('viewEdit').style.display = 'block';
         document.getElementById('topPlayerHeader').style.display = 'none';
         document.getElementById('navLeftBtn').innerText = '完成';
         stopPlayback();
@@ -547,6 +513,21 @@
     function getSelectedVoice() {
       const voiceName = document.getElementById('voiceDropdown').value;
       return availableVoices.find(v => v.name === voiceName);
+    }
+
+    // 試聽按鈕功能
+    function previewVoice() {
+      window.speechSynthesis.cancel();
+      const isZh = document.getElementById('langTypeSelect').value === 'zh';
+      const sampleText = isZh ? "你好，這是普通話朗讀測試。" : "Hello, this is a voice preview test.";
+      const utter = new SpeechSynthesisUtterance(sampleText);
+      const chosenVoice = getSelectedVoice();
+      if (chosenVoice) {
+        utter.voice = chosenVoice;
+        utter.lang = chosenVoice.lang;
+      }
+      utter.rate = parseFloat(document.getElementById('rateRange').value);
+      window.speechSynthesis.speak(utter);
     }
 
     function getSpokenText(rawText) {
@@ -654,67 +635,11 @@
     async function pasteFromClipboard() {
       try {
         const text = await navigator.clipboard.readText();
-        if (text) document.getElementById('textInput').value = text;
-      } catch (err) {
-        alert('請長按文字框直接貼上。');
-      }
-    }
-
-    async function callGitHubOCR(input) {
-      if (!input.files || input.files.length === 0) return;
-      const token = document.getElementById('githubToken').value.trim();
-      if (!token) {
-        alert('請先在設定頁最底填入你的 GitHub Token！');
-        input.value = '';
-        return;
-      }
-
-      const file = input.files[0];
-      const overlay = document.getElementById('loadingOverlay');
-      overlay.style.display = 'flex';
-
-      try {
-        const base64Data = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        });
-
-        const promptText = "這是一份小學語文/英語課文教材。請嚴格提取圖中的課文正文純文字。重要規則：1. 完全忽略中文字正上方的拼音字母與聲調；2. 忽略任何手寫筆跡、改錯痕跡、螢光筆標記及頁碼插圖；3. 保留正確標點符號與原本段落換行；4. 只返回提取後的正文內容，不要附加任何解釋。";
-
-        const resp = await fetch('https://models.inference.ai.azure.com/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  { type: 'text', text: promptText },
-                  { type: 'image_url', image_url: { url: base64Data } }
-                ]
-              }
-            ]
-          })
-        });
-
-        const data = await resp.json();
-        if (data.choices && data.choices[0].message) {
-          const extractedText = data.choices[0].message.content.trim();
-          document.getElementById('textInput').value = extractedText;
-          alert('課文提純成功！');
-        } else {
-          alert('辨識失敗：' + (data.error ? data.error.message : '請檢查 Token 是否正確'));
+        if (text) {
+          document.getElementById('textInput').value = text;
         }
       } catch (err) {
-        alert('連線失敗，請檢查網絡或 Token。');
-      } finally {
-        overlay.style.display = 'none';
-        input.value = '';
+        alert('請直接在課文框長按貼上。');
       }
     }
 

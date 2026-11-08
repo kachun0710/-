@@ -23,7 +23,15 @@
       --pinyin-active: #FFD54F;
       --circle-bg: #E5E5EA;
       --circle-text: #8E8E93;
+
+      /* 動態字體變數 (預設級別 3 - L) */
+      --card-font-size: 19px;
+      --pinyin-font-size: 13px;
+      --card-line-height: 2.3;
+      --card-badge-size: 28px;
+      --ui-font-size: 15px;
     }
+
     body.dark-mode {
       --primary: #0A84FF;
       --bg: #000000;
@@ -39,9 +47,9 @@
       --circle-bg: #2C2C2E;
       --circle-text: #AEAEB2;
     }
+
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
     
-    /* 根除卡死問題：流暢全屏高度與安全捲動設定 */
     html, body {
       height: 100%;
       background: var(--bg);
@@ -50,6 +58,7 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
+      font-size: var(--ui-font-size);
     }
 
     .app-wrapper {
@@ -61,7 +70,7 @@
       background: var(--bg);
     }
 
-    /* 頂部控制面板：固定在最頂，不隨滾動偏移 */
+    /* 頂部全置頂保護容器 */
     .top-fixed-panel {
       flex-shrink: 0;
       background: var(--bg);
@@ -75,10 +84,10 @@
       justify-content: space-between;
       align-items: center;
       padding: 6px 0;
-      height: 44px;
+      min-height: 44px;
     }
     .nav-title {
-      font-size: 17px;
+      font-size: 1.15em;
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
@@ -88,7 +97,7 @@
     .icon-btn {
       background: transparent;
       border: none;
-      font-size: 19px;
+      font-size: 1.25em;
       cursor: pointer;
       color: var(--text);
       padding: 6px;
@@ -116,12 +125,12 @@
     }
     .capsule-bar {
       display: flex; align-items: center; justify-content: space-between; width: 100%;
-      background: var(--card-bg); padding: 7px 12px; border-radius: 12px;
-      border: 1px solid var(--border); font-size: 12px; color: var(--subtext); cursor: pointer;
+      background: var(--card-bg); padding: 8px 12px; border-radius: 12px;
+      border: 1px solid var(--border); font-size: 0.85em; color: var(--subtext); cursor: pointer;
     }
     .capsule-bar span { font-weight: 600; color: var(--primary); }
 
-    /* 主滾動區：確保滾動流暢不卡死 */
+    /* 滾動內容區 */
     .scroll-body {
       flex: 1;
       overflow-y: auto;
@@ -136,13 +145,18 @@
       margin-bottom: 12px;
     }
     .card-idx-badge {
-      width: 26px; height: 26px; border-radius: 50%;
+      width: var(--card-badge-size);
+      height: var(--card-badge-size);
+      border-radius: 50%;
       background: var(--circle-bg); color: var(--circle-text);
       display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 3px;
+      font-size: calc(var(--card-font-size) * 0.65);
+      font-weight: 700; flex-shrink: 0; margin-top: 5px;
     }
     .card-text-body {
-      font-size: 17px; line-height: 2.1; font-weight: 600;
+      font-size: var(--card-font-size);
+      line-height: var(--card-line-height);
+      font-weight: 600;
       word-break: break-word; flex: 1;
     }
     .sentence-card.active {
@@ -152,31 +166,37 @@
     .sentence-card.active .card-idx-badge { background: rgba(255,255,255,0.25); color: #FFFFFF; }
     .sentence-card.active rt { color: var(--pinyin-active); }
     ruby { ruby-align: center; margin: 0 1px; }
-    rt { font-size: 11px; color: var(--pinyin-color); font-weight: 600; line-height: 1; }
+    rt {
+      font-size: var(--pinyin-font-size);
+      color: var(--pinyin-color);
+      font-weight: 600;
+      line-height: 1;
+    }
 
-    /* 編輯視圖卡片樣式 */
+    /* 編輯視圖卡片 */
     .card { background: var(--card-bg); border-radius: 14px; padding: 14px; border: 1px solid var(--border); margin-bottom: 12px; }
     .field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-    .field-label { font-size: 13px; color: var(--subtext); font-weight: 600; }
-    .btn-text-clear { background: transparent; border: none; color: #FF3B30; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .field-label { font-size: 0.9em; color: var(--subtext); font-weight: 600; }
+    .btn-text-clear { background: transparent; border: none; color: #FF3B30; font-size: 0.85em; font-weight: 600; cursor: pointer; }
     input[type=text], textarea, select {
       width: 100%; border: 1px solid var(--border); border-radius: 10px;
-      padding: 10px 12px; font-size: 15px; background: transparent; color: var(--text); font-family: inherit;
+      padding: 10px 12px; font-size: 1em; background: transparent; color: var(--text); font-family: inherit;
     }
     textarea { height: 160px; line-height: 1.5; resize: none; }
     .btn-row { display: flex; gap: 8px; margin-top: 8px; }
     .btn-flat {
       flex: 1; padding: 11px; border-radius: 10px; border: none; font-weight: 700;
-      font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+      font-size: 0.95em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
     }
     .btn-flat.primary { background: var(--primary); color: #FFF; }
     .btn-flat.secondary { background: var(--border); color: var(--text); }
+    
     .setting-item {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 11px 0; border-bottom: 1px solid var(--border);
+      padding: 12px 0; border-bottom: 1px solid var(--border); gap: 10px;
     }
     .setting-item:last-child { border-bottom: none; }
-    .toggle-switch { position: relative; display: inline-block; width: 46px; height: 26px; }
+    .toggle-switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; }
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
     .slider {
       position: absolute; cursor: pointer; inset: 0; background-color: #E5E5EA;
@@ -188,6 +208,7 @@
     }
     input:checked + .slider { background-color: var(--accent-green); }
     input:checked + .slider:before { transform: translateX(20px); }
+
     .history-item {
       padding: 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--border);
       display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; cursor: pointer;
@@ -216,11 +237,12 @@
           <button class="btn-circle" onclick="manualNext()">⏭</button>
         </div>
 
+        <!-- 升級版膠囊：顯示當前語音引擎名字 -->
         <div class="capsule-bar" onclick="switchView('edit')">
-          <div id="capsuleLangText">普通話朗讀 · 0.8x</div>
+          <div id="capsuleVoiceInfo">聲音引擎 · 0.8x</div>
           <div id="capsuleDelayText">停頓 <span>5s</span> · 讀 <span>1次</span></div>
         </div>
-        <div id="countdownStatus" style="font-size: 12px; font-weight: 700; color: #FF3B30; min-height: 14px;"></div>
+        <div id="countdownStatus" style="font-size: 0.85em; font-weight: 700; color: #FF3B30; min-height: 14px;"></div>
       </div>
     </div>
 
@@ -256,7 +278,7 @@
         </div>
       </div>
 
-      <!-- 語音引擎設定（含試聽功能） -->
+      <!-- 語音引擎與試聽 -->
       <div class="card">
         <div class="setting-item">
           <span class="field-label">語言種類</span>
@@ -268,18 +290,18 @@
 
         <div class="setting-item">
           <span class="field-label">朗讀聲音引擎</span>
-          <div style="display: flex; gap: 6px; width: 60%; align-items: center;">
-            <select id="voiceDropdown" style="flex: 1; font-size: 13px;">
+          <div style="display: flex; gap: 6px; width: 62%; align-items: center;">
+            <select id="voiceDropdown" onchange="updateCapsuleVoiceDisplay()" style="flex: 1; font-size: 0.9em;">
               <option value="">載入聲音中...</option>
             </select>
-            <button class="btn-flat secondary" style="flex: none; padding: 8px 10px; font-size: 13px;" onclick="previewVoice()">🔊 試聽</button>
+            <button class="btn-flat secondary" style="flex: none; padding: 8px 10px; font-size: 0.85em;" onclick="previewVoice()">🔊 試聽</button>
           </div>
         </div>
 
         <div class="setting-item">
           <div>
-            <div style="font-weight: 600; font-size: 14px;">朗讀標點符號</div>
-            <div style="font-size: 11px; color: var(--subtext);">唸出「逗號」、「句號」提醒小朋友</div>
+            <div style="font-weight: 600;">朗讀標點符號</div>
+            <div style="font-size: 0.8em; color: var(--subtext);">唸出「逗號」、「句號」提醒小朋友</div>
           </div>
           <label class="toggle-switch">
             <input type="checkbox" id="readPunctuationToggle">
@@ -290,7 +312,7 @@
         <div class="setting-item">
           <div>
             <span class="field-label">朗讀速度 (0.1x ~ 4.0x)</span>
-            <div style="font-size: 11px; color: var(--subtext);">支援極慢練讀與極限速聽</div>
+            <div style="font-size: 0.8em; color: var(--subtext);">支援極慢練讀與極限速聽</div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px; width: 45%;">
             <input type="range" id="rateRange" min="0.1" max="4.0" step="0.1" value="0.8" oninput="updateRateLabel(this.value)">
@@ -314,6 +336,31 @@
           </div>
         </div>
       </div>
+
+      <!-- 字體大小調整卡片 (5級) -->
+      <div class="card">
+        <div class="setting-item">
+          <div>
+            <span class="field-label">課文拼音卡片大小 (5級)</span>
+            <div style="font-size: 0.8em; color: var(--subtext);">調整默書頁中文字及拼音大小</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; width: 42%;">
+            <input type="range" id="cardFontSizeRange" min="1" max="5" value="3" oninput="setCardFontSize(this.value)">
+            <span id="cardFontSizeLabel" style="font-weight: 700; width: 38px;">3 (L)</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div>
+            <span class="field-label">介面文字大小 (5級)</span>
+            <div style="font-size: 0.8em; color: var(--subtext);">調整按鈕、設定標籤與輸入字級</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; width: 42%;">
+            <input type="range" id="uiFontSizeRange" min="1" max="5" value="3" oninput="setUIFontSize(this.value)">
+            <span id="uiFontSizeLabel" style="font-weight: 700; width: 38px;">3 (標準)</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -321,7 +368,7 @@
   <div id="historyModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px;">
     <div class="card" style="width: 100%; max-height: 80vh; display: flex; flex-direction: column; margin-bottom: 0;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h3 style="font-size: 16px;">📚 已儲存課文庫</h3>
+        <h3 style="font-size: 1.1em;">📚 已儲存課文庫</h3>
         <button class="icon-btn" onclick="closeSavedList()">✕</button>
       </div>
       <div id="historyListContainer" style="overflow-y: auto; flex: 1;"></div>
@@ -342,6 +389,41 @@
       '！': '，感嘆號', '？': '，問號', '；': '，分號',
       ',': ' comma', '.': ' period', '!': ' exclamation mark', '?': ' question mark'
     };
+
+    // 5 級課文字體預設值 (字體, 拼音, 行高, 圓圈序號尺寸)
+    const cardSizeMap = {
+      '1': { card: '15px', pinyin: '10px', lh: '2.1', badge: '22px', label: '1 (S)' },
+      '2': { card: '17px', pinyin: '11px', lh: '2.2', badge: '25px', label: '2 (M)' },
+      '3': { card: '20px', pinyin: '13px', lh: '2.3', badge: '28px', label: '3 (L)' },
+      '4': { card: '23px', pinyin: '14px', lh: '2.4', badge: '32px', label: '4 (XL)' },
+      '5': { card: '26px', pinyin: '16px', lh: '2.5', badge: '36px', label: '5 (XXL)' }
+    };
+
+    // 5 級介面文字預設值
+    const uiSizeMap = {
+      '1': { size: '13px', label: '1 (極細)' },
+      '2': { size: '14px', label: '2 (略細)' },
+      '3': { size: '15px', label: '3 (標準)' },
+      '4': { size: '17px', label: '4 (略大)' },
+      '5': { size: '19px', label: '5 (極大)' }
+    };
+
+    function setCardFontSize(val) {
+      const cfg = cardSizeMap[val];
+      document.documentElement.style.setProperty('--card-font-size', cfg.card);
+      document.documentElement.style.setProperty('--pinyin-font-size', cfg.pinyin);
+      document.documentElement.style.setProperty('--card-line-height', cfg.lh);
+      document.documentElement.style.setProperty('--card-badge-size', cfg.badge);
+      document.getElementById('cardFontSizeLabel').innerText = cfg.label;
+      localStorage.setItem('card_font_level', val);
+    }
+
+    function setUIFontSize(val) {
+      const cfg = uiSizeMap[val];
+      document.documentElement.style.setProperty('--ui-font-size', cfg.size);
+      document.getElementById('uiFontSizeLabel').innerText = cfg.label;
+      localStorage.setItem('ui_font_level', val);
+    }
 
     function populateVoiceList() {
       if (!('speechSynthesis' in window)) return;
@@ -380,6 +462,16 @@
         }
         dropdown.appendChild(opt);
       });
+
+      updateCapsuleVoiceDisplay();
+    }
+
+    function updateCapsuleVoiceDisplay() {
+      const chosenVoice = getSelectedVoice();
+      const rate = parseFloat(document.getElementById('rateRange').value).toFixed(1);
+      const isZh = document.getElementById('langTypeSelect').value === 'zh';
+      const voiceShortName = chosenVoice ? chosenVoice.name.split(' ')[0] : (isZh ? '普通話' : '英語');
+      document.getElementById('capsuleVoiceInfo').innerText = `${voiceShortName} · ${rate}x`;
     }
 
     if ('speechSynthesis' in window) {
@@ -388,11 +480,21 @@
     }
 
     window.onload = () => {
+      // 載入字體大小設定
+      const savedCardLevel = localStorage.getItem('card_font_level') || '3';
+      document.getElementById('cardFontSizeRange').value = savedCardLevel;
+      setCardFontSize(savedCardLevel);
+
+      const savedUiLevel = localStorage.getItem('ui_font_level') || '3';
+      document.getElementById('uiFontSizeRange').value = savedUiLevel;
+      setUIFontSize(savedUiLevel);
+
       prepareSentences();
     };
 
     function updateRateLabel(val) {
       document.getElementById('rateValShow').innerText = parseFloat(val).toFixed(1) + 'x';
+      updateCapsuleVoiceDisplay();
     }
 
     function clearTextContent() {
@@ -463,12 +565,9 @@
         sentences = matches ? matches.map(s => s.trim()).filter(s => s.length > 0) : [raw.trim()];
       }
 
-      const isEng = isSentenceEnglish(sentences.join(''));
-      const rate = parseFloat(document.getElementById('rateRange').value).toFixed(1);
+      updateCapsuleVoiceDisplay();
       const pauseSec = document.getElementById('pauseRange').value;
       const rep = document.getElementById('repeatRange').value;
-      
-      document.getElementById('capsuleLangText').innerText = (isEng ? "英語朗讀" : "普通話朗讀") + ` · ${rate}x`;
       document.getElementById('capsuleDelayText').innerHTML = `停頓 <span>${pauseSec}s</span> · 讀 <span>${rep}次</span>`;
 
       renderCards();
@@ -515,7 +614,6 @@
       return availableVoices.find(v => v.name === voiceName);
     }
 
-    // 試聽按鈕功能
     function previewVoice() {
       window.speechSynthesis.cancel();
       const isZh = document.getElementById('langTypeSelect').value === 'zh';
@@ -635,9 +733,7 @@
     async function pasteFromClipboard() {
       try {
         const text = await navigator.clipboard.readText();
-        if (text) {
-          document.getElementById('textInput').value = text;
-        }
+        if (text) document.getElementById('textInput').value = text;
       } catch (err) {
         alert('請直接在課文框長按貼上。');
       }
@@ -666,9 +762,9 @@
         row.innerHTML = `
           <div>
             <div style="font-weight:700;">${item.title}</div>
-            <div style="font-size:12px;color:gray;">${item.date}</div>
+            <div style="font-size:0.85em;color:gray;">${item.date}</div>
           </div>
-          <button style="border:none;background:#FF3B30;color:white;border-radius:6px;padding:4px 8px;font-size:12px;" onclick="event.stopPropagation();deleteHistory(${idx})">刪除</button>
+          <button style="border:none;background:#FF3B30;color:white;border-radius:6px;padding:4px 8px;font-size:0.85em;" onclick="event.stopPropagation();deleteHistory(${idx})">刪除</button>
         `;
         row.onclick = () => {
           document.getElementById('titleInput').value = item.title;

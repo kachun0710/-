@@ -26,10 +26,10 @@
       --divider-bg: #E3F2FD;
       --divider-text: #0277BD;
 
-      /* 動態字體變數 */
+      /* 動態字體與緊湊行距變數 */
       --card-font-size: 20px;
-      --pinyin-font-size: 12px;
-      --card-line-height: 2.3;
+      --pinyin-font-size: 11px;
+      --card-line-height: 1.75;
       --card-badge-size: 28px;
       --ui-font-size: 15px;
     }
@@ -74,7 +74,6 @@
       background: var(--bg);
     }
 
-    /* 頂部全置頂保護容器 */
     .top-fixed-panel {
       flex-shrink: 0;
       background: var(--bg);
@@ -134,7 +133,6 @@
     }
     .capsule-bar span { font-weight: 600; color: var(--primary); }
 
-    /* 滾動內容區 */
     .scroll-body {
       flex: 1;
       overflow-y: auto;
@@ -142,12 +140,11 @@
       padding: 12px 16px calc(env(safe-area-inset-bottom) + 30px) 16px;
     }
 
-    /* 升級版：大氣醒目嘅段落膠囊標籤 */
     .paragraph-divider {
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 24px 0 14px 0;
+      margin: 22px 0 12px 0;
       position: relative;
     }
     .paragraph-divider::before {
@@ -171,11 +168,15 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
 
+    /* 關鍵修復：自然換行與防止右側爆框 */
     .sentence-card {
       background: var(--card-bg); border-radius: 16px; padding: 14px 16px;
       display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--border);
       cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02);
       margin-bottom: 12px;
+      width: 100%;
+      word-break: break-word;
+      overflow: hidden;
     }
     .card-idx-badge {
       width: var(--card-badge-size);
@@ -184,13 +185,15 @@
       background: var(--circle-bg); color: var(--circle-text);
       display: flex; align-items: center; justify-content: center;
       font-size: calc(var(--card-font-size) * 0.65);
-      font-weight: 700; flex-shrink: 0; margin-top: 5px;
+      font-weight: 700; flex-shrink: 0; margin-top: 3px;
     }
     .card-text-body {
       font-size: var(--card-font-size);
       line-height: var(--card-line-height);
       font-weight: 600;
-      word-break: break-word; flex: 1;
+      flex: 1;
+      word-break: break-word;
+      overflow-wrap: break-word;
     }
     .sentence-card.active {
       background: var(--active-card-bg); border-color: var(--active-card-bg);
@@ -199,22 +202,26 @@
     .sentence-card.active .card-idx-badge { background: rgba(255,255,255,0.25); color: #FFFFFF; }
     .sentence-card.active rt { color: var(--pinyin-active); }
 
-    /* 專業排版優化：解決拼音太長防擠壓問題 */
+    /* 拼音排版優化：自然緊湊、不爆框、適度行距 */
     ruby {
       ruby-align: center;
-      margin: 0 0.12em; /* 彈性字距，防止長拼音擠壓左右漢字 */
-      white-space: nowrap;
+      display: inline-flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      vertical-align: bottom;
+      margin: 0 1.5px;
     }
     rt {
       font-size: var(--pinyin-font-size);
       color: var(--pinyin-color);
       font-weight: 600;
       line-height: 1;
-      letter-spacing: -0.2px; /* 拼音字母微緊湊化，釋放空間 */
+      letter-spacing: -0.3px;
       user-select: none;
+      display: block;
+      transform: translateY(-2px);
     }
 
-    /* 編輯視圖卡片 */
     .card { background: var(--card-bg); border-radius: 14px; padding: 14px; border: 1px solid var(--border); margin-bottom: 12px; }
     .field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .field-label { font-size: 0.9em; color: var(--subtext); font-weight: 600; }
@@ -259,7 +266,6 @@
 <body>
 
   <div class="app-wrapper">
-    <!-- 頂部永久固定面板 -->
     <div class="top-fixed-panel">
       <div class="nav-bar">
         <button class="icon-btn" onclick="toggleView()" id="navLeftBtn">⚙️ 編輯</button>
@@ -270,7 +276,6 @@
         </div>
       </div>
 
-      <!-- 播放器控制組件 -->
       <div class="player-header" id="topPlayerHeader">
         <div class="ctrl-circle-group">
           <button class="btn-circle" onclick="manualPrev()">⏮</button>
@@ -286,12 +291,12 @@
       </div>
     </div>
 
-    <!-- 視圖 1: 默書播放 (卡片滾動區) -->
+    <!-- 視圖 1: 播放句子卡片滾動區 -->
     <div id="viewPlay" class="scroll-body" style="display: block;">
       <div id="sentenceContainer"></div>
     </div>
 
-    <!-- 視圖 2: 編輯與設定 (表單滾動區) -->
+    <!-- 視圖 2: 編輯與設定 -->
     <div id="viewEdit" class="scroll-body" style="display: none;">
       <div class="card">
         <div class="field-header">
@@ -315,7 +320,6 @@
         </div>
       </div>
 
-      <!-- 語音引擎與試聽 -->
       <div class="card">
         <div class="setting-item">
           <span class="field-label">語言種類</span>
@@ -374,7 +378,6 @@
         </div>
       </div>
 
-      <!-- 字體大小調整卡片 (5級) -->
       <div class="card">
         <div class="setting-item">
           <div>
@@ -401,7 +404,6 @@
     </div>
   </div>
 
-  <!-- 題庫對話框 -->
   <div id="historyModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px;">
     <div class="card" style="width: 100%; max-height: 80vh; display: flex; flex-direction: column; margin-bottom: 0;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -421,33 +423,47 @@
     let currentView = 'play';
     let availableVoices = [];
 
-    // 關鍵修復：加入冒號與開引號的讀音與呼吸停頓
-    const punctMap = {
-      '：': '，冒號，',
-      ':': '，冒號，',
-      '「': '，開引號，',
-      '」': '，關引號，',
-      '『': '，開引號，',
-      '』': '，關引號，',
-      '"': '，引號，',
-      '，': '，逗號，',
-      '、': '，頓號，',
-      '。': '，句號，',
-      '！': '，感嘆號，',
-      '？': '，問號，',
-      '；': '，分號，',
-      ',': ' comma, ',
-      '.': ' period, ',
-      '!': ' exclamation mark, ',
-      '?': ' question mark, '
-    };
+    // 精準複合標點朗讀轉換（徹底杜絕重複堆疊）
+    function getSpokenText(rawText) {
+      const shouldReadPunct = document.getElementById('readPunctuationToggle').checked;
+      if (!shouldReadPunct) return rawText;
+
+      let text = rawText;
+
+      // 1. 優先處理複合標點（例如：說道：「）
+      text = text.replace(/[:：][「『]/g, '，冒號開引號，');
+      text = text.replace(/[。][」』]/g, '，句號關引號，');
+      text = text.replace(/[！!][」』]/g, '，感嘆號關引號，');
+      text = text.replace(/[？?][」』]/g, '，問號關引號，');
+
+      // 2. 處理單一標點（乾淨替換，只讀一次）
+      const singleMap = [
+        [/[:：]/g, '，冒號，'],
+        [/[「『]/g, '，開引號，'],
+        [/[」』]/g, '，關引號，'],
+        [/[，,]/g, '，逗號，'],
+        [/、/g, '，頓號，'],
+        [/[。.]/g, '，句號，'],
+        [/[！!]/g, '，感嘆號，'],
+        [/[？?]/g, '，問號，'],
+        [/[；;]/g, '，分號，']
+      ];
+
+      singleMap.forEach(([regex, spoken]) => {
+        text = text.replace(regex, spoken);
+      });
+
+      // 3. 收緊連續逗號，保持自然停頓節奏
+      text = text.replace(/，+/g, '，');
+      return text;
+    }
 
     const cardSizeMap = {
-      '1': { card: '15px', pinyin: '10px', lh: '2.1', badge: '22px', label: '1 (S)' },
-      '2': { card: '17px', pinyin: '11px', lh: '2.2', badge: '25px', label: '2 (M)' },
-      '3': { card: '20px', pinyin: '12px', lh: '2.3', badge: '28px', label: '3 (L)' },
-      '4': { card: '23px', pinyin: '14px', lh: '2.4', badge: '32px', label: '4 (XL)' },
-      '5': { card: '26px', pinyin: '15px', lh: '2.5', badge: '36px', label: '5 (XXL)' }
+      '1': { card: '15px', pinyin: '9.5px', lh: '1.65', badge: '22px', label: '1 (S)' },
+      '2': { card: '17px', pinyin: '10.5px', lh: '1.7', badge: '25px', label: '2 (M)' },
+      '3': { card: '20px', pinyin: '11.5px', lh: '1.75', badge: '28px', label: '3 (L)' },
+      '4': { card: '23px', pinyin: '13px', lh: '1.8', badge: '32px', label: '4 (XL)' },
+      '5': { card: '26px', pinyin: '14.5px', lh: '1.85', badge: '36px', label: '5 (XXL)' }
     };
 
     const uiSizeMap = {
@@ -619,7 +635,6 @@
         const paragraphs = raw.split(/\n+/).map(p => p.trim()).filter(p => p.length > 0);
         
         paragraphs.forEach((pText, pIdx) => {
-          // 精確切分：保留冒號、引號並防止孤兒標點
           const regex = /[^，。！？；,!?;:]+[，。！？；,!?;:]*[」』"'\)）]*/g;
           const matches = pText.match(regex);
           
@@ -650,7 +665,6 @@
       container.innerHTML = '';
 
       sentences.forEach((item, idx) => {
-        // 全新醒目段落膠囊標籤
         if (item.isPFirst) {
           const divDivider = document.createElement('div');
           divDivider.className = 'paragraph-divider';
@@ -711,18 +725,6 @@
       }
       utter.rate = parseFloat(document.getElementById('rateRange').value);
       window.speechSynthesis.speak(utter);
-    }
-
-    // 核心強化：標點符號發音與停頓轉換
-    function getSpokenText(rawText) {
-      const shouldReadPunct = document.getElementById('readPunctuationToggle').checked;
-      if (!shouldReadPunct) return rawText;
-
-      let spoken = rawText;
-      for (const [p, spokenWord] of Object.entries(punctMap)) {
-        spoken = spoken.split(p).join(spokenWord);
-      }
-      return spoken;
     }
 
     function playCurrent() {

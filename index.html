@@ -168,7 +168,6 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
 
-    /* 關鍵修復：自然換行與防止右側爆框 */
     .sentence-card {
       background: var(--card-bg); border-radius: 16px; padding: 14px 16px;
       display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--border);
@@ -202,7 +201,6 @@
     .sentence-card.active .card-idx-badge { background: rgba(255,255,255,0.25); color: #FFFFFF; }
     .sentence-card.active rt { color: var(--pinyin-active); }
 
-    /* 拼音排版優化：自然緊湊、不爆框、適度行距 */
     ruby {
       ruby-align: center;
       display: inline-flex;
@@ -423,38 +421,39 @@
     let currentView = 'play';
     let availableVoices = [];
 
-    // 精準複合標點朗讀轉換（徹底杜絕重複堆疊）
+    // 徹底根治標點朗讀重複搞笑 Bug
     function getSpokenText(rawText) {
       const shouldReadPunct = document.getElementById('readPunctuationToggle').checked;
       if (!shouldReadPunct) return rawText;
 
       let text = rawText;
 
-      // 1. 優先處理複合標點（例如：說道：「）
-      text = text.replace(/[:：][「『]/g, '，冒號開引號，');
-      text = text.replace(/[。][」』]/g, '，句號關引號，');
-      text = text.replace(/[！!][」』]/g, '，感嘆號關引號，');
-      text = text.replace(/[？?][」』]/g, '，問號關引號，');
+      // 步驟 1：優先處理相連的複合標點，直接替換為乾淨讀音，絕不用中文「逗號」做停頓
+      text = text.replace(/[:：][「『]/g, ', 冒號 開引號, ');
+      text = text.replace(/[。][」』]/g, ', 句號 關引號, ');
+      text = text.replace(/[！!][」』]/g, ', 感嘆號 關引號, ');
+      text = text.replace(/[？?][」』]/g, ', 問號 關引號, ');
+      text = text.replace(/[，,][」』]/g, ', 逗號 關引號, ');
 
-      // 2. 處理單一標點（乾淨替換，只讀一次）
-      const singleMap = [
-        [/[:：]/g, '，冒號，'],
-        [/[「『]/g, '，開引號，'],
-        [/[」』]/g, '，關引號，'],
-        [/[，,]/g, '，逗號，'],
-        [/、/g, '，頓號，'],
-        [/[。.]/g, '，句號，'],
-        [/[！!]/g, '，感嘆號，'],
-        [/[？?]/g, '，問號，'],
-        [/[；;]/g, '，分號，']
+      // 步驟 2：處理單一標點（用英文逗號 , 帶給語音引擎自然停頓，文字只出現一次名稱）
+      const singlePunctList = [
+        { reg: /[:：]/g, word: ', 冒號, ' },
+        { reg: /[「『]/g, word: ', 開引號, ' },
+        { reg: /[」』]/g, word: ', 關引號, ' },
+        { reg: /[，,]/g, word: ', 逗號, ' },
+        { reg: /、/g,     word: ', 頓號, ' },
+        { reg: /[。.]/g, word: ', 句號, ' },
+        { reg: /[！!]/g, word: ', 感嘆號, ' },
+        { reg: /[？?]/g, word: ', 問號, ' },
+        { reg: /[；;]/g, word: ', 分號, ' }
       ];
 
-      singleMap.forEach(([regex, spoken]) => {
-        text = text.replace(regex, spoken);
+      singlePunctList.forEach(item => {
+        text = text.replace(item.reg, item.word);
       });
 
-      // 3. 收緊連續逗號，保持自然停頓節奏
-      text = text.replace(/，+/g, '，');
+      // 步驟 3：清理連續多餘的英文逗號與空格
+      text = text.replace(/,\s*,+/g, ',').trim();
       return text;
     }
 

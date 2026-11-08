@@ -40,20 +40,25 @@
       --circle-text: #AEAEB2;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+    
+    /* 核心修正：外層結構固定高度，但內部視圖自由滾動 */
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
       display: flex;
       flex-direction: column;
-      height: 100vh;
       max-width: 500px;
       margin: 0 auto;
-      overflow: hidden;
       transition: background 0.3s ease;
     }
 
-    /* 頂部全置頂保護容器：無論點轆都唔會跟住走 */
+    /* 頂部全置頂保護容器：永遠固定喺最頂 */
     .top-fixed-area {
       flex-shrink: 0;
       background: var(--bg);
@@ -113,11 +118,13 @@
     }
     .capsule-bar span { font-weight: 600; color: var(--primary); }
 
-    /* 內容滾動視圖 */
+    /* 關鍵修復：獨立滾動區，開啟 iOS 原生滾動手感 */
     .scroll-pane {
       flex: 1;
+      height: 100%;
       overflow-y: auto;
-      padding: 12px 16px env(safe-area-inset-bottom) 16px;
+      -webkit-overflow-scrolling: touch;
+      padding: 12px 16px calc(env(safe-area-inset-bottom) + 30px) 16px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -127,6 +134,7 @@
       background: var(--card-bg); border-radius: 16px; padding: 14px 16px;
       display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--border);
       cursor: pointer; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+      flex-shrink: 0;
     }
     .card-idx-badge {
       width: 26px; height: 26px; border-radius: 50%;
@@ -148,7 +156,7 @@
     rt { font-size: 11px; color: var(--pinyin-color); font-weight: 600; line-height: 1; }
 
     /* 編輯視圖卡片 */
-    .card { background: var(--card-bg); border-radius: 14px; padding: 14px; border: 1px solid var(--border); }
+    .card { background: var(--card-bg); border-radius: 14px; padding: 14px; border: 1px solid var(--border); flex-shrink: 0; }
     .field-header {
       display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
     }
@@ -226,7 +234,7 @@
 
   <!-- 視圖 1: 播放句子卡片滾動區 -->
   <div id="viewPlay" class="scroll-pane" style="display: flex;">
-    <div id="sentenceContainer" style="display: flex; flex-direction: column; gap: 12px; padding-bottom: 30px;"></div>
+    <div id="sentenceContainer" style="display: flex; flex-direction: column; gap: 12px; width: 100%;"></div>
   </div>
 
   <!-- 視圖 2: 編輯與設定模式 -->
@@ -327,10 +335,10 @@
       </div>
     </div>
 
-    <!-- GitHub Token 區 -->
+    <!-- GitHub Token 區（代碼留空，避免觸發安全警告） -->
     <div class="card">
-      <div class="field-label">GitHub Token (已預載並自動生效)</div>
-      <input type="text" id="githubToken" value="" onchange="localStorage.setItem('gh_token', this.value.trim())">
+      <div class="field-label">GitHub Token（貼入一次永久記住）</div>
+      <input type="text" id="githubToken" value="" placeholder="貼上 ghp_ 開頭的 GitHub Token" onchange="localStorage.setItem('gh_token', this.value.trim())">
     </div>
   </div>
 
@@ -392,7 +400,7 @@
         matchedVoices = availableVoices;
       }
 
-      matchedVoices.forEach((voice, i) => {
+      matchedVoices.forEach((voice) => {
         const opt = document.createElement('option');
         opt.value = voice.name;
         opt.textContent = `${voice.name} (${voice.lang})`;
@@ -656,7 +664,7 @@
       if (!input.files || input.files.length === 0) return;
       const token = document.getElementById('githubToken').value.trim();
       if (!token) {
-        alert('請先填入 GitHub Token！');
+        alert('請先在設定頁最底填入你的 GitHub Token！');
         input.value = '';
         return;
       }

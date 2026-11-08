@@ -421,55 +421,6 @@
     let currentView = 'play';
     let availableVoices = [];
 
-    // 終極修復：完全禁止在字串中殘留任何逗號（中文，或英文,），改用空格，徹底消滅幽靈「逗號」！
-    function getSpokenText(rawText) {
-      const shouldReadPunct = document.getElementById('readPunctuationToggle').checked;
-      const isZh = document.getElementById('langTypeSelect').value === 'zh';
-
-      if (!shouldReadPunct) {
-        return rawText;
-      }
-
-      let text = rawText;
-
-      if (isZh) {
-        // 中文/普通話模式：只朗讀純漢字名稱，前後只用空格隔離
-        // 1. 優先匹配複合標點
-        text = text.replace(/[:：][「『]/g, ' 冒號 開引號 ');
-        text = text.replace(/[。][」』]/g, ' 句號 關引號 ');
-        text = text.replace(/[！!][」』]/g, ' 感嘆號 關引號 ');
-        text = text.replace(/[？?][」』]/g, ' 問號 關引號 ');
-        text = text.replace(/[，,][」』]/g, ' 逗號 關引號 ');
-
-        // 2. 獨立標點逐一轉換為純漢字
-        text = text.replace(/[:：]/g, ' 冒號 ');
-        text = text.replace(/[「『]/g, ' 開引號 ');
-        text = text.replace(/[」』]/g, ' 關引號 ');
-        text = text.replace(/[，,]/g, ' 逗號 ');
-        text = text.replace(/、/g,     ' 頓號 ');
-        text = text.replace(/[。.]/g, ' 句號 ');
-        text = text.replace(/[！!]/g, ' 感嘆號 ');
-        text = text.replace(/[？?]/g, ' 問號 ');
-        text = text.replace(/[；;]/g, ' 分號 ');
-        text = text.replace(/[（\(]/g, ' 開括號 ');
-        text = text.replace(/[）\)]/g, ' 關括號 ');
-        text = text.replace(/[“”"]/g, ' 引號 ');
-      } else {
-        // 英文模式
-        text = text.replace(/,/g, ' comma ');
-        text = text.replace(/\./g, ' period ');
-        text = text.replace(/!/g, ' exclamation mark ');
-        text = text.replace(/\?/g, ' question mark ');
-        text = text.replace(/;/g, ' semicolon ');
-        text = text.replace(/:/g, ' colon ');
-        text = text.replace(/"/g, ' quotation mark ');
-      }
-
-      // 3. 收緊多餘空格，保證絕無半個逗號符號
-      text = text.replace(/\s+/g, ' ').trim();
-      return text;
-    }
-
     const cardSizeMap = {
       '1': { card: '15px', pinyin: '9.5px', lh: '1.65', badge: '22px', label: '1 (S)' },
       '2': { card: '17px', pinyin: '10.5px', lh: '1.7', badge: '25px', label: '2 (M)' },
@@ -739,6 +690,100 @@
       window.speechSynthesis.speak(utter);
     }
 
+    /* 
+      核心革新：構建語音片段隊列（Chunk Pipeline）
+      徹底擺脫字串標點符號，用程式計時器強制製造「真實停頓」，不殘留任何逗號！
+    */
+    function buildSpeechQueue(rawText) {
+      const shouldReadPunct = document.getElementById('readPunctuationToggle').checked;
+      const isZh = document.getElementById('langTypeSelect').value === 'zh';
+      
+      const punctNameMapZh = {
+        '：': '冒號', ':': '冒號',
+        '「': '開引號', '『': '開引號',
+        '」': '關引號', '』': '關引號',
+        '，': '逗號', ',': '逗號',
+        '、': '頓號',
+        '。': '句號', '.': '句號',
+        '！': '感嘆號', '!': '感嘆號',
+        '？': '問號', '?': '問號',
+        '；': '分號', ';': '分號'
+      };
+
+      const punctNameMapEn = {
+        ',': 'comma', '.': 'period', '!': 'exclamation mark', '?': 'question mark',
+        ':': 'colon', ';': 'semicolon', '"': 'quotation mark'
+      };
+
+      const punctRegex = /([：:「『」』，,、。.！!？?；;])/g;
+      const tokens = rawText.split(punctRegex).filter(t => t.length > 0);
+      const queue = [];
+
+      tokens.forEach(token => {
+        const isPunct = punctRegex.test(token);
+        if (isPunct) {
+          if (shouldReadPunct) {
+            const spokenName = isZh ? punctNameMapZh[token] : punctNameMapEn[token];
+            if (spokenName) {
+              // 標點片段：讀出名稱，隨後強制定點停頓 350 毫秒！
+              queue.push({ text: spokenName, delayAfter: 350 });
+            }
+          } else {
+            // 不讀標點時：給予自然的 300 毫秒換氣空檔
+            if (queue.length > 0) {
+              queue[queue.length - 1].delayAfter = 300;
+            }
+          }
+        } else {
+          // 普通文字片段
+          queue.push({ text: token.trim(), delayAfter: 0 });
+        }
+      });
+
+      return queue.filter(q => q.text.length > 0);
+    }
+
+    // 順序執行語音片段播放
+    function playSpeechQueue(queue, onComplete) {
+      if (!isPlaying) return;
+      if (queue.length === 0) {
+        if (onComplete) onComplete();
+        return;
+      }
+
+      const item = queue.shift();
+      const utter = new SpeechSynthesisUtterance(item.text);
+      const chosenVoice = getSelectedVoice();
+      const isEng = isSentenceEnglish(item.text);
+
+      if (chosenVoice) {
+        utter.voice = chosenVoice;
+        utter.lang = chosenVoice.lang;
+      } else {
+        utter.lang = isEng ? 'en-GB' : 'zh-CN';
+      }
+
+      utter.rate = parseFloat(document.getElementById('rateRange').value);
+
+      utter.onend = () => {
+        if (!isPlaying) return;
+        if (item.delayAfter > 0) {
+          // 物理停頓計時器：純留白，絕不讀出任何雜音！
+          setTimeout(() => {
+            playSpeechQueue(queue, onComplete);
+          }, item.delayAfter);
+        } else {
+          playSpeechQueue(queue, onComplete);
+        }
+      };
+
+      utter.onerror = () => {
+        if (isPlaying) stopPlayback();
+      };
+
+      window.speechSynthesis.speak(utter);
+    }
+
     function playCurrent() {
       if (currentIndex >= sentences.length) {
         stopPlayback();
@@ -751,21 +796,9 @@
       updateActiveCard();
 
       const origText = sentences[currentIndex].text;
-      const isEng = isSentenceEnglish(origText);
-      const textToSpeak = getSpokenText(origText);
+      const speechQueue = buildSpeechQueue(origText);
 
-      const utter = new SpeechSynthesisUtterance(textToSpeak);
-      const chosenVoice = getSelectedVoice();
-      if (chosenVoice) {
-        utter.voice = chosenVoice;
-        utter.lang = chosenVoice.lang;
-      } else {
-        utter.lang = isEng ? 'en-GB' : 'zh-CN';
-      }
-      
-      utter.rate = parseFloat(document.getElementById('rateRange').value);
-
-      utter.onend = () => {
+      playSpeechQueue(speechQueue, () => {
         const maxRep = parseInt(document.getElementById('repeatRange').value);
         currentRepeat++;
         if (currentRepeat < maxRep) {
@@ -778,10 +811,7 @@
             playCurrent();
           });
         }
-      };
-
-      utter.onerror = () => stopPlayback();
-      window.speechSynthesis.speak(utter);
+      });
     }
 
     function startCountdown(seconds, callback) {

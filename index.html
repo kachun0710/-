@@ -421,39 +421,52 @@
     let currentView = 'play';
     let availableVoices = [];
 
-    // 徹底根治標點朗讀重複搞笑 Bug
+    // 終極修復：完全禁止在字串中殘留任何逗號（中文，或英文,），改用空格，徹底消滅幽靈「逗號」！
     function getSpokenText(rawText) {
       const shouldReadPunct = document.getElementById('readPunctuationToggle').checked;
-      if (!shouldReadPunct) return rawText;
+      const isZh = document.getElementById('langTypeSelect').value === 'zh';
+
+      if (!shouldReadPunct) {
+        return rawText;
+      }
 
       let text = rawText;
 
-      // 步驟 1：優先處理相連的複合標點，直接替換為乾淨讀音，絕不用中文「逗號」做停頓
-      text = text.replace(/[:：][「『]/g, ', 冒號 開引號, ');
-      text = text.replace(/[。][」』]/g, ', 句號 關引號, ');
-      text = text.replace(/[！!][」』]/g, ', 感嘆號 關引號, ');
-      text = text.replace(/[？?][」』]/g, ', 問號 關引號, ');
-      text = text.replace(/[，,][」』]/g, ', 逗號 關引號, ');
+      if (isZh) {
+        // 中文/普通話模式：只朗讀純漢字名稱，前後只用空格隔離
+        // 1. 優先匹配複合標點
+        text = text.replace(/[:：][「『]/g, ' 冒號 開引號 ');
+        text = text.replace(/[。][」』]/g, ' 句號 關引號 ');
+        text = text.replace(/[！!][」』]/g, ' 感嘆號 關引號 ');
+        text = text.replace(/[？?][」』]/g, ' 問號 關引號 ');
+        text = text.replace(/[，,][」』]/g, ' 逗號 關引號 ');
 
-      // 步驟 2：處理單一標點（用英文逗號 , 帶給語音引擎自然停頓，文字只出現一次名稱）
-      const singlePunctList = [
-        { reg: /[:：]/g, word: ', 冒號, ' },
-        { reg: /[「『]/g, word: ', 開引號, ' },
-        { reg: /[」』]/g, word: ', 關引號, ' },
-        { reg: /[，,]/g, word: ', 逗號, ' },
-        { reg: /、/g,     word: ', 頓號, ' },
-        { reg: /[。.]/g, word: ', 句號, ' },
-        { reg: /[！!]/g, word: ', 感嘆號, ' },
-        { reg: /[？?]/g, word: ', 問號, ' },
-        { reg: /[；;]/g, word: ', 分號, ' }
-      ];
+        // 2. 獨立標點逐一轉換為純漢字
+        text = text.replace(/[:：]/g, ' 冒號 ');
+        text = text.replace(/[「『]/g, ' 開引號 ');
+        text = text.replace(/[」』]/g, ' 關引號 ');
+        text = text.replace(/[，,]/g, ' 逗號 ');
+        text = text.replace(/、/g,     ' 頓號 ');
+        text = text.replace(/[。.]/g, ' 句號 ');
+        text = text.replace(/[！!]/g, ' 感嘆號 ');
+        text = text.replace(/[？?]/g, ' 問號 ');
+        text = text.replace(/[；;]/g, ' 分號 ');
+        text = text.replace(/[（\(]/g, ' 開括號 ');
+        text = text.replace(/[）\)]/g, ' 關括號 ');
+        text = text.replace(/[“”"]/g, ' 引號 ');
+      } else {
+        // 英文模式
+        text = text.replace(/,/g, ' comma ');
+        text = text.replace(/\./g, ' period ');
+        text = text.replace(/!/g, ' exclamation mark ');
+        text = text.replace(/\?/g, ' question mark ');
+        text = text.replace(/;/g, ' semicolon ');
+        text = text.replace(/:/g, ' colon ');
+        text = text.replace(/"/g, ' quotation mark ');
+      }
 
-      singlePunctList.forEach(item => {
-        text = text.replace(item.reg, item.word);
-      });
-
-      // 步驟 3：清理連續多餘的英文逗號與空格
-      text = text.replace(/,\s*,+/g, ',').trim();
+      // 3. 收緊多餘空格，保證絕無半個逗號符號
+      text = text.replace(/\s+/g, ' ').trim();
       return text;
     }
 
